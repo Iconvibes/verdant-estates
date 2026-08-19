@@ -11,7 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
-.freebuff
+.env
+.env.*
+!.env.example
+.freebuff/
 
 # Server runtime data
 server/data/*.json

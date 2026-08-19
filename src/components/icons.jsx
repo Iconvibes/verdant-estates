@@ -222,19 +222,3 @@ export const TreeIcon = (props) => (
     <path d="M12 15c-3.3 0-6-2.7-6-6 0-2.2 1.2-4.2 3-5.3C10.8 2.6 12 1 12 1s1.2 1.6 3 2.7c1.8 1.1 3 3.1 3 5.3 0 3.3-2.7 6-6 6Z" />
   </svg>
 )
-
-export const GridIcon = (props) => (
-  <svg {...base} {...props}>
-    <rect x="3" y="3" width="7" height="7" rx="1" />
-    <rect x="14" y="3" width="7" height="7" rx="1" />
-    <rect x="3" y="14" width="7" height="7" rx="1" />
-    <rect x="14" y="14" width="7" height="7" rx="1" />
-  </svg>
-)
-
-export const MapIcon = (props) => (
-  <svg {...base} {...props}>
-    <path d="M20.5 3l-.16.03L15 5.1 3 3.5 2.8 5l9.9 8.3-7.8 3.5L4 18l2.1-.5 7.9-3.5 5.5 1.2.1-.03L21 5.5 21 3l-.5-.5Z" />
-    <path d="M12 22V8" />
-  </svg>
-)

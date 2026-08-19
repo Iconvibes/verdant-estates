@@ -1,14 +1,13 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import gsap from 'gsap'
 import PropertyCard from '../components/PropertyCard'
 import StaggerReveal from '../components/StaggerReveal'
-const MapView = lazy(() => import('../components/MapView'))
 import SubscribeAlerts from '../components/SubscribeAlerts'
 import SEO, { breadcrumbSchema } from '../components/SEO'
 import useHead from '../hooks/useHead'
 import { PROPERTIES } from '../data/properties'
-import { CheckIcon, CloseIcon, GridIcon, LinkIcon, MapIcon, SearchIcon } from '../components/icons'
+import { CheckIcon, CloseIcon, LinkIcon, SearchIcon } from '../components/icons'
 
 const PRICE_PRESETS = [
   { value: 'any', label: 'Any price', min: null, max: null },
@@ -67,7 +66,7 @@ const copyText = async (text) => {
 const Listings = () => {
   const types = useMemo(() => ['All', ...new Set(PROPERTIES.map((p) => p.type))], [])
 
-  const [viewMode, setViewMode] = useState('grid') // 'grid' | 'map'
+
   const [toast, setToast] = useState(null)
   const toastRef = useRef(null)
   const toastTimer = useRef(null)
@@ -300,48 +299,15 @@ const Listings = () => {
                 </span>
               </div>
 
-              {/* View toggle */}
-              <div className="ml-auto flex items-center gap-1 rounded-md border border-cream bg-cream p-1">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('grid')}
-                  aria-label="Grid view"
-                  aria-pressed={viewMode === 'grid'}
-                  className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    viewMode === 'grid' ? 'bg-forest text-cream' : 'text-text/60 hover:text-forest'
-                  }`}
-                >
-                  <GridIcon className="h-3.5 w-3.5" /> Grid
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('map')}
-                  aria-label="Map view"
-                  aria-pressed={viewMode === 'map'}
-                  className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    viewMode === 'map' ? 'bg-forest text-cream' : 'text-text/60 hover:text-forest'
-                  }`}
-                >
-                  <MapIcon className="h-3.5 w-3.5" /> Map
-                </button>
-              </div>
+
             </div>
           </div>
 
-          {/* Grid or Map view */}
-          {viewMode === 'grid' ? (
-            <StaggerReveal key={`${type}-${sort}-${beds}-${minPrice}-${maxPrice}-${query}`} className="mt-10 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {sorted.map((property) => (
-                <PropertyCard key={property.id} property={property} />
-              ))}
-            </StaggerReveal>
-          ) : (
-            <div className="mt-10">
-              <Suspense fallback={<div className="flex h-[500px] items-center justify-center rounded-xl bg-cream/50 text-sm text-text/60">Loading map&hellip;</div>}>
-                <MapView properties={sorted} />
-              </Suspense>
-            </div>
-          )}
+          <StaggerReveal key={`${type}-${sort}-${beds}-${minPrice}-${maxPrice}-${query}`} className="mt-10 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {sorted.map((property) => (
+              <PropertyCard key={property.id} property={property} />
+            ))}
+          </StaggerReveal>
 
           <SEO
             data={breadcrumbSchema([

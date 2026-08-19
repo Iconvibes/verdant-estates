@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'verdant-estates-dev-secret-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_SECRET required in production') })() : 'dev-only-secret-do-not-use-in-prod')
 
 export function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' })
