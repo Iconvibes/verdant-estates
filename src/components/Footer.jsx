@@ -75,7 +75,7 @@ const Footer = () => {
       <div className="border-t border-cream/10">
         <div className="container-x flex flex-col items-center justify-between gap-3 py-6 text-xs text-cream/50 sm:flex-row">
           <p>© {new Date().getFullYear()} Verdant Estates. All rights reserved.</p>
-          <p>Lagos, Nigeria · Built with the forest in mind</p>
+          <p>Lagos, Nigeria · Built with you in mind</p>
         </div>
       </div>
     </footer>
