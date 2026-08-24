@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { tourFrames, TOTAL_FRAMES } from '../data/frames'
+import { getFrameUrl, TOTAL_FRAMES } from '../data/frames'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -52,13 +52,20 @@ const ScrollHouseTour = () => {
     const img = imgRef.current
     let currentFrame = 0
 
+    const frameCache = {}
     const setFrame = (index) => {
       if (index === currentFrame) return
       currentFrame = index
-      img.src = tourFrames[index]
+      // Lazy-load frame URL on first access
+      if (!frameCache[index]) frameCache[index] = getFrameUrl(index)
+      if (frameCache[index]) img.src = frameCache[index]
       // preload the next two frames for a seamless walkthrough
-      if (index + 1 < TOTAL_FRAMES) { const p = new Image(); p.src = tourFrames[index + 1] }
-      if (index + 2 < TOTAL_FRAMES) { const p = new Image(); p.src = tourFrames[index + 2] }
+      for (let n = 1; n <= 2; n++) {
+        const nextIdx = index + n
+        if (nextIdx < TOTAL_FRAMES && !frameCache[nextIdx]) {
+          frameCache[nextIdx] = getFrameUrl(nextIdx)
+        }
+      }
     }
 
     const ctx = gsap.context(() => {
@@ -109,7 +116,7 @@ const ScrollHouseTour = () => {
     >
       <img
         ref={imgRef}
-        src={tourFrames[0]}
+        src={getFrameUrl(0)}
         alt="Virtual walkthrough of a modern Verdant Estates home"
         className="absolute inset-0 h-full w-full object-cover"
       />

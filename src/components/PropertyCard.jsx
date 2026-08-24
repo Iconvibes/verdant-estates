@@ -1,28 +1,35 @@
 import { Link } from 'react-router-dom'
-import { formatPrice } from '../data/properties'
+import { useCurrency } from '../context/CurrencyContext'
 import { useSavedHomes } from '../context/SavedHomesContext'
 import { useCompare } from '../context/CompareContext'
 import BlurImage from './BlurImage'
+import ShareButtons from './ShareButtons'
 import { AreaIcon, BathIcon, BedIcon, CompareIcon, HeartIcon, MapPinIcon } from './icons'
 
 const PropertyCard = ({ property }) => {
   const { isSaved, toggleSaved } = useSavedHomes()
+  const { formatPrice } = useCurrency()
   const { isComparing, toggleCompare, canAdd } = useCompare()
   const saved = isSaved(property.id)
   const comparing = isComparing(property.id)
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-xl bg-white shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lift">
-      <Link to={`/listing/${property.id}`} data-cursor="view" className="relative block aspect-[4/3] overflow-hidden bg-forest-deep">
-        <BlurImage
-          src={property.image}
-          alt={property.name}
-          className="h-full w-full transition-transform duration-700 group-hover:scale-105"
-        />
+      <div className="relative aspect-[4/3] overflow-hidden bg-forest-deep">
+        <Link to={`/listing/${property.id}`} className="absolute inset-0 z-0">
+          <BlurImage
+            src={property.image}
+            alt={property.name}
+            className="h-full w-full transition-transform duration-700 group-hover:scale-105"
+          />
+        </Link>
         <span className="absolute left-4 top-4 z-10 rounded-sm bg-forest/90 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-cream">
           {property.type}
         </span>
-      </Link>
+        <div className="absolute bottom-3 left-3 z-10">
+          <ShareButtons property={property} variant="compact" />
+        </div>
+      </div>
 
       <button
         type="button"
@@ -55,10 +62,12 @@ const PropertyCard = ({ property }) => {
         <CompareIcon className="h-5 w-5" />
       </button>
 
+
+
       <div className="flex flex-1 flex-col p-6">
         <p className="font-serif text-2xl font-bold text-forest">{formatPrice(property.price)}</p>
         <h3 className="mt-1.5 font-serif text-lg font-bold text-forest">
-          <Link to={`/listing/${property.id}`} data-cursor="explore" className="transition-colors hover:text-bronze">
+          <Link to={`/listing/${property.id}`} className="transition-colors hover:text-bronze">
             {property.name}
           </Link>
         </h3>
@@ -82,7 +91,7 @@ const PropertyCard = ({ property }) => {
         <Link
           to={`/listing/${property.id}`}
           className="btn-forest mt-6 w-full !py-3 text-xs"
-          data-cursor="explore"
+         
         >
           View Details
         </Link>

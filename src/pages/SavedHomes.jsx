@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import PropertyCard from '../components/PropertyCard'
 import useHead from '../hooks/useHead'
 import { useSavedHomes } from '../context/SavedHomesContext'
-import { getPropertyById } from '../data/properties'
+import { getPropertyById } from '../data'
 import { HeartIcon } from '../components/icons'
 
 const SavedHomes = () => {

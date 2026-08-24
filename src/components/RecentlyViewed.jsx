@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
 import { useCompare } from '../context/CompareContext'
 import { useSavedHomes } from '../context/SavedHomesContext'
-import { getPropertyById, formatPrice } from '../data/properties'
+import { getPropertyById } from '../data'
+import { useCurrency } from '../context/CurrencyContext'
 import { AreaIcon, BathIcon, BedIcon, CompareIcon, HeartIcon, MapPinIcon, TrashIcon } from './icons'
 
 const RecentlyViewed = ({ ids, excludeId, onClear }) => {
+  const { formatPrice } = useCurrency()
   const properties = ids
     .filter((id) => id !== Number(excludeId))
     .map((id) => getPropertyById(id))

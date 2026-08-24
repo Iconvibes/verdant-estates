@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import SEO, { organisationSchema } from '../components/SEO'
 import Testimonials from '../components/Testimonials'
 import useHead from '../hooks/useHead'
-import { tourFrames } from '../data/frames'
+import { getFrameUrl } from '../data/frames'
 import { KeyIcon, LeafIcon, MapPinIcon, ShieldIcon, SunIcon } from '../components/icons'
 
 const values = [
@@ -57,7 +57,7 @@ const About = () => {
     <>
       <section className="relative overflow-hidden bg-forest-deep py-20 md:py-28">
         <img
-          src={tourFrames[60]}
+          src={getFrameUrl(60)}
           alt="Bright, open living space in a Verdant Estates home"
           className="absolute inset-0 h-full w-full object-cover opacity-25"
         />
@@ -121,12 +121,12 @@ const About = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <img
-              src={tourFrames[40]}
+              src={getFrameUrl(40)}
               alt="Modern home exterior at Verdant Estates"
               className="aspect-[4/5] w-full rounded-xl object-cover shadow-soft"
             />
             <img
-              src={tourFrames[110]}
+              src={getFrameUrl(110)}
               alt="Open kitchen and living space with natural light"
               className="mt-10 aspect-[4/5] w-full rounded-xl object-cover shadow-soft"
             />

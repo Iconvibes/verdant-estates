@@ -6,7 +6,8 @@ import StaggerReveal from '../components/StaggerReveal'
 import SubscribeAlerts from '../components/SubscribeAlerts'
 import SEO, { breadcrumbSchema } from '../components/SEO'
 import useHead from '../hooks/useHead'
-import { PROPERTIES } from '../data/properties'
+import { getAllProperties } from '../data'
+import { getFrameUrl } from '../data/frames'
 import { CheckIcon, CloseIcon, LinkIcon, SearchIcon } from '../components/icons'
 
 const PRICE_PRESETS = [
@@ -64,7 +65,8 @@ const copyText = async (text) => {
 }
 
 const Listings = () => {
-  const types = useMemo(() => ['All', ...new Set(PROPERTIES.map((p) => p.type))], [])
+  const allProperties = getAllProperties()
+  const types = useMemo(() => ['All', ...new Set(allProperties.map((p) => p.type))], [allProperties])
 
 
   const [toast, setToast] = useState(null)
@@ -149,7 +151,7 @@ const Listings = () => {
     url: 'https://verdantestates.ng/listings',
   })
 
-  const visible = PROPERTIES.filter((p) => {
+  const visible = allProperties.filter((p) => {
     if (type !== 'All' && p.type !== type) return false
     if (minPrice !== null && p.price < minPrice) return false
     if (maxPrice !== null && p.price > maxPrice) return false
@@ -167,8 +169,14 @@ const Listings = () => {
 
   return (
     <>
-      <section className="bg-forest-deep py-16 md:py-20">
-        <div className="container-x">
+      <section className="relative overflow-hidden bg-forest-deep py-16 md:py-20">
+        <img
+          src={getFrameUrl(20)}
+          alt="Luxury homes in Lagos"
+          className="absolute inset-0 h-full w-full object-cover opacity-20"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-forest-deep via-forest-deep/80 to-forest-deep/50" aria-hidden="true" />
+        <div className="container-x relative">
           <p className="eyebrow">The Portfolio</p>
           <h1 className="mt-3 font-serif text-4xl font-bold text-cream md:text-5xl">Our Listings</h1>
           <p className="mt-4 max-w-2xl text-cream/75">
@@ -295,7 +303,7 @@ const Listings = () => {
                   </button>
                 )}
                 <span className="text-sm text-text/60">
-                  Showing {visible.length} of {PROPERTIES.length} homes
+                  Showing {visible.length} of {allProperties.length} homes
                 </span>
               </div>
 

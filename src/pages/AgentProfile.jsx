@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getAgentById, getAgentListings } from '../data/agents'
+import { getAgentById, getAgentListings } from '../data'
 import PropertyCard from '../components/PropertyCard'
 import StaggerReveal from '../components/StaggerReveal'
 import SEO, { breadcrumbSchema } from '../components/SEO'
@@ -101,9 +101,17 @@ const AgentProfile = () => {
           <div>
             {/* Agent header */}
             <div className="flex items-start gap-6">
-              <span className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-forest to-forest-deep font-serif text-3xl font-bold text-bronze shadow-lift">
-                {agent.initials}
-              </span>
+              {agent.photo ? (
+                <img
+                  src={agent.photo}
+                  alt={agent.name}
+                  className="h-24 w-24 shrink-0 rounded-full object-cover shadow-lift"
+                />
+              ) : (
+                <span className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-forest to-forest-deep font-serif text-3xl font-bold text-bronze shadow-lift">
+                  {agent.initials}
+                </span>
+              )}
               <div>
                 <h1 className="font-serif text-3xl font-bold text-forest md:text-4xl">{agent.name}</h1>
                 <p className="mt-1 text-sm font-semibold uppercase tracking-wider text-bronze">{agent.role}</p>
@@ -118,7 +126,7 @@ const AgentProfile = () => {
             </div>
 
             {/* Stats bar */}
-            <div className="mt-8 grid grid-cols-3 gap-4 rounded-xl bg-white p-6 shadow-soft">
+            <div className="mt-8 grid grid-cols-3 gap-2 rounded-xl bg-white p-4 shadow-soft sm:gap-4 sm:p-6">
               <div className="text-center">
                 <BriefcaseIcon className="mx-auto h-5 w-5 text-bronze" />
                 <p className="mt-2 font-serif text-2xl font-bold text-forest">{agent.experience}</p>

@@ -2,16 +2,19 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { getPropertyById, formatPrice, PROPERTIES } from '../data/properties'
+import { getPropertyById, getAllProperties } from '../data'
+import { useCurrency } from '../context/CurrencyContext'
 import PropertyCard from '../components/PropertyCard'
+import ShareButtons from '../components/ShareButtons'
 import SEO, { listingSchema, breadcrumbSchema } from '../components/SEO'
 import MortgageCalculator from '../components/MortgageCalculator'
+import FloorPlanTab from '../components/FloorPlanViewer'
 import RecentlyViewed from '../components/RecentlyViewed'
 import StaggerReveal from '../components/StaggerReveal'
 import useHead from '../hooks/useHead'
 import useRecentlyViewed from '../hooks/useRecentlyViewed'
 import { useSavedHomes } from '../context/SavedHomesContext'
-import { tourFrames, TOTAL_FRAMES } from '../data/frames'
+import { getFrameUrl, TOTAL_FRAMES } from '../data/frames'
 gsap.registerPlugin(ScrollTrigger)
 
 import {
@@ -29,6 +32,7 @@ import {
 
 const ListingDetail = () => {
   const { id } = useParams()
+  const { formatPrice } = useCurrency()
   const property = getPropertyById(id)
   const { isSaved, toggleSaved } = useSavedHomes()
   const { recentIds, trackView, clearRecent } = useRecentlyViewed()
@@ -38,10 +42,11 @@ const ListingDetail = () => {
   const interiorShots = useMemo(() => {
     if (!property) return []
     const start = (property.id * 37) % Math.max(TOTAL_FRAMES - 45, 1)
-    return [start, start + 15, start + 30].map((i) => tourFrames[i % TOTAL_FRAMES])
+    return [start, start + 15, start + 30].map((i) => getFrameUrl(i % TOTAL_FRAMES))
   }, [property])
 
   const [activeImage, setActiveImage] = useState(property ? property.image : null)
+  const [viewTab, setViewTab] = useState('gallery') // 'gallery' | 'floorplan'
 
   // Parallax refs
   const heroRef = useRef(null)
@@ -135,7 +140,7 @@ const ListingDetail = () => {
   }
 
   const gallery = [property.image, ...interiorShots]
-  const related = PROPERTIES.filter((p) => p.id !== property.id).slice(0, 3)
+  const related = getAllProperties().filter((p) => p.id !== property.id).slice(0, 3)
 
   return (
     <>
@@ -161,35 +166,67 @@ const ListingDetail = () => {
       <section className="section bg-cream">
         <div className="container-x">
           <div className="grid gap-12 lg:grid-cols-[1fr_400px]">
-            {/* LEFT: gallery + details */}
+            {/* LEFT: gallery / floorplan + details */}
             <div>
-              <div data-cursor="drag" className="overflow-hidden rounded-xl bg-forest-deep shadow-lift">
-                <img
-                  ref={galleryRef}
-                  src={activeImage}
-                  alt={property.name}
-                  data-cursor="view"
-                  className="aspect-[16/10] w-full object-cover will-change-transform"
-                />
+              {/* Tab Switcher */}
+              <div className="mb-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewTab('gallery')}
+                  className={`rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                    viewTab === 'gallery'
+                      ? 'bg-forest text-cream'
+                      : 'bg-cream text-text/70 hover:bg-forest/10 hover:text-forest'
+                  }`}
+                >
+                  Gallery
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewTab('floorplan')}
+                  className={`rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                    viewTab === 'floorplan'
+                      ? 'bg-forest text-cream'
+                      : 'bg-cream text-text/70 hover:bg-forest/10 hover:text-forest'
+                  }`}
+                >
+                  Floor Plan
+                </button>
               </div>
 
-              <div className="mt-4 grid grid-cols-4 gap-3">
-                {gallery.map((src, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setActiveImage(src)}
-                    data-cursor="view"
-                    className={`overflow-hidden rounded-lg transition-all duration-200 ${
-                      activeImage === src
-                        ? 'ring-2 ring-bronze ring-offset-2 ring-offset-cream'
-                        : 'opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    <img src={src} alt={`${property.name} view ${i + 1}`} className="aspect-[4/3] w-full object-cover" />
-                  </button>
-                ))}
-              </div>
+              {viewTab === 'gallery' ? (
+                <>
+                  <div className="overflow-hidden rounded-xl bg-forest-deep shadow-lift">
+                    <img
+                      ref={galleryRef}
+                      src={activeImage}
+                      alt={property.name}
+                     
+                      className="aspect-[16/10] w-full object-cover will-change-transform"
+                    />
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-4 gap-2 sm:gap-3">
+                    {gallery.map((src, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setActiveImage(src)}
+                       
+                        className={`overflow-hidden rounded-lg transition-all duration-200 ${
+                          activeImage === src
+                            ? 'ring-2 ring-bronze ring-offset-2 ring-offset-cream'
+                            : 'opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        <img src={src} alt={`${property.name} view ${i + 1}`} className="aspect-[4/3] w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <FloorPlanTab property={property} />
+              )}
 
               <div className="mt-10">
                 <p className="eyebrow">About This Home</p>
@@ -257,6 +294,11 @@ const ListingDetail = () => {
                   <HeartIcon className="h-4 w-4" filled={saved} />
                   {saved ? 'Saved — Remove from Wishlist' : 'Save This Home'}
                 </button>
+
+                <div className="mt-4">
+                  <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-wider text-text/50">Share this property</p>
+                  <ShareButtons property={property} variant="full" />
+                </div>
 
                 <div className="mt-8 border-t border-cream pt-6">
                   <div className="flex items-center gap-4">

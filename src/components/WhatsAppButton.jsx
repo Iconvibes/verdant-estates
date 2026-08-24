@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
-import { getPropertyById } from '../data/properties'
+import { getPropertyById } from '../data'
+import { useCurrency } from '../context/CurrencyContext'
 
 const WHATSAPP_PHONE = '2348000000000' // update to the real business number
 
@@ -12,6 +13,7 @@ const WhatsAppIcon = (props) => (
 
 const WhatsAppButton = () => {
   const location = useLocation()
+  const { formatPrice } = useCurrency()
 
   const message = useMemo(() => {
     // On a listing detail page, build a property-specific message
@@ -19,13 +21,13 @@ const WhatsAppButton = () => {
     if (match) {
       const property = getPropertyById(match[1])
       if (property) {
-        return `Hello, I'm interested in "${property.name}" (${property.address}) listed at ₦${property.price.toLocaleString('en-NG')}. Could you share more details and arrange a viewing?`
+        return `Hello, I'm interested in "${property.name}" (${property.address}) listed at ${formatPrice(property.price)}. Could you share more details and arrange a viewing?`
       }
     }
 
     // Generic message for all other pages
     return "Hello, I'm interested in learning more about Verdant Estates. Could you help me find a home in Lagos?"
-  }, [location.pathname])
+  }, [location.pathname, formatPrice])
 
   const url = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(message)}`
 

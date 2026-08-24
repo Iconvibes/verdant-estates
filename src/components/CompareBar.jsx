@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import gsap from 'gsap'
 import { useCompare } from '../context/CompareContext'
-import { getPropertyById } from '../data/properties'
+import { getPropertyById } from '../data'
 import { CloseIcon, CompareIcon } from './icons'
 
 const CompareBar = () => {

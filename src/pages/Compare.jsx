@@ -1,6 +1,7 @@
 import { Link, Navigate } from 'react-router-dom'
 import { useCompare } from '../context/CompareContext'
-import { getPropertyById, formatPrice } from '../data/properties'
+import { getPropertyById } from '../data'
+import { useCurrency } from '../context/CurrencyContext'
 import useHead from '../hooks/useHead'
 import {
   AreaIcon,
@@ -14,6 +15,7 @@ import {
 
 const Compare = () => {
   const { compareIds, removeCompare, clearCompare } = useCompare()
+  const { formatPrice } = useCurrency()
   const properties = compareIds.map((id) => getPropertyById(id)).filter(Boolean)
 
   useHead({

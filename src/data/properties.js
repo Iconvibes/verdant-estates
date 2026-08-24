@@ -121,10 +121,10 @@ export const PROPERTIES = [
       'Prime position near banks, hotels and schools',
     ],
     agent: {
-      name: 'Femi Adeyemi',
+      name: 'Tunde Bakare',
       role: 'Luxury Resale Manager',
       phone: '+234 805 111 0834',
-      email: 'femi.adeyemi@verdantestates.ng',
+      email: 'tunde.bakare@verdantestates.ng',
     },
   },
   {
@@ -153,10 +153,10 @@ export const PROPERTIES = [
       'Low-maintenance native landscaping',
     ],
     agent: {
-      name: 'Ngozi Obi',
+      name: 'Chioma Eze',
       role: 'Sales Partner',
       phone: '+234 806 666 0912',
-      email: 'ngozi.obi@verdantestates.ng',
+      email: 'chioma.eze@verdantestates.ng',
     },
   },
   {
@@ -249,10 +249,10 @@ export const PROPERTIES = [
       'Solar-assisted common power',
     ],
     agent: {
-      name: 'Chioma Eze',
+      name: 'Adaeze Okafor',
       role: 'Sales Partner',
       phone: '+234 809 222 1076',
-      email: 'chioma.eze@verdantestates.ng',
+      email: 'adaeze.okafor@verdantestates.ng',
     },
   },
   {

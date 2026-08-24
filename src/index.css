@@ -13,6 +13,37 @@
     overflow-x: hidden;
   }
 
+  /* Custom scrollbar — Verdant branded */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2A5A46 #F5F0E8;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: #F5F0E8;
+    border-radius: 10px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #2A5A46, #1D4235);
+    border-radius: 10px;
+    border: 2px solid #F5F0E8;
+    transition: background 0.2s;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #B49054, #9A7A44);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: #F5F0E8;
+  }
+
   h1,
   h2,
   h3,

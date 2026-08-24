@@ -1,6 +1,11 @@
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_SECRET required in production') })() : 'dev-only-secret-do-not-use-in-prod')
+// Require JWT_SECRET from environment — no hardcoded fallback
+const JWT_SECRET = process.env.JWT_SECRET
+if (!JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is required')
+  process.exit(1)
+}
 
 export function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' })
@@ -20,6 +25,16 @@ export function authenticate(req, res, next) {
   } catch {
     return res.status(401).json({ error: 'Invalid or expired token' })
   }
+}
+
+/**
+ * Require admin role. Must be used AFTER authenticate middleware.
+ */
+export function requireAdmin(req, res, next) {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' })
+  }
+  next()
 }
 
 export function optionalAuth(req, _res, next) {

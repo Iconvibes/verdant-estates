@@ -1,9 +1,9 @@
-import { AGENTS } from '../data/agents'
+import { getAllAgents, getAllProperties } from '../data'
 import AgentCard from '../components/AgentCard'
 import SEO, { organisationSchema } from '../components/SEO'
 import useHead from '../hooks/useHead'
 import StaggerReveal from '../components/StaggerReveal'
-import { PROPERTIES } from '../data/properties'
+import { getFrameUrl } from '../data/frames'
 
 const Agents = () => {
   useHead({
@@ -12,18 +12,27 @@ const Agents = () => {
     url: 'https://verdantestates.ng/agents',
   })
 
+  const agents = getAllAgents()
+  const properties = getAllProperties()
+
   // Count listings per agent
   const listingCounts = {}
-  for (const agent of AGENTS) {
-    listingCounts[agent.id] = PROPERTIES.filter(
+  for (const agent of agents) {
+    listingCounts[agent.id] = properties.filter(
       (p) => p.agent?.email?.includes(agent.id.replace('-', '.')),
     ).length
   }
 
   return (
     <>
-      <section className="bg-forest-deep py-16 md:py-20">
-        <div className="container-x">
+      <section className="relative overflow-hidden bg-forest-deep py-16 md:py-20">
+        <img
+          src={getFrameUrl(120)}
+          alt="Verdant Estates team"
+          className="absolute inset-0 h-full w-full object-cover opacity-20"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-forest-deep via-forest-deep/80 to-forest-deep/50" aria-hidden="true" />
+        <div className="container-x relative">
           <p className="eyebrow">Our Partners</p>
           <h1 className="mt-3 font-serif text-4xl font-bold text-cream md:text-5xl">Meet the Team</h1>
           <p className="mt-4 max-w-2xl text-cream/75">
@@ -36,11 +45,12 @@ const Agents = () => {
       <section className="section bg-cream">
         <div className="container-x">
           <StaggerReveal className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {AGENTS.map((agent) => (
+            {agents.map((agent, i) => (
               <AgentCard
                 key={agent.id}
                 agent={agent}
                 listingCount={listingCounts[agent.id]}
+                index={i}
               />
             ))}
           </StaggerReveal>

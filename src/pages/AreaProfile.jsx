@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
-import { getAreaById, getAreaListings, AREAS } from '../data/areas'
-import { formatPrice } from '../data/properties'
+import { getAreaById, getAreaListings, getAllAreas } from '../data'
+import { useCurrency } from '../context/CurrencyContext'
 import PropertyCard from '../components/PropertyCard'
 import StaggerReveal from '../components/StaggerReveal'
 import SEO, { breadcrumbSchema } from '../components/SEO'
@@ -18,9 +18,11 @@ import {
 
 const AreaProfile = () => {
   const { id } = useParams()
+  const { formatPrice } = useCurrency()
   const area = getAreaById(id)
   const listings = area ? getAreaListings(area.id) : []
-  const otherAreas = AREAS.filter((a) => a.id !== id).slice(0, 3)
+  const allAreas = getAllAreas()
+  const otherAreas = allAreas.filter((a) => a.id !== id).slice(0, 3)
 
   useHead(
     area

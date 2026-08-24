@@ -1,13 +1,13 @@
-import { BrowserRouter, Link, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Link, Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import PageTransition from './components/PageTransition'
 import WhatsAppButton from './components/WhatsAppButton'
 import CompareBar from './components/CompareBar'
-import CustomCursor from './components/CustomCursor'
 import ScrollProgress from './components/ScrollProgress'
 import { SavedHomesProvider } from './context/SavedHomesContext'
 import { CompareProvider } from './context/CompareContext'
+import { CurrencyProvider } from './context/CurrencyContext'
 import Home from './pages/Home'
 import Listings from './pages/Listings'
 import ListingDetail from './pages/ListingDetail'
@@ -19,6 +19,9 @@ import Agents from './pages/Agents'
 import AgentProfile from './pages/AgentProfile'
 import Areas from './pages/Areas'
 import AreaProfile from './pages/AreaProfile'
+import Admin from './pages/Admin'
+import Blog from './pages/Blog'
+import BlogPost from './pages/BlogPost'
 
 const NotFound = () => (
   <section className="section bg-cream">
@@ -34,9 +37,12 @@ const NotFound = () => (
   </section>
 )
 
-const App = () => {
+const AppContent = () => {
+  const location = useLocation()
+  const isAdmin = location.pathname.startsWith('/admin')
+
   return (
-    <BrowserRouter>
+      <CurrencyProvider>
       <SavedHomesProvider>
         <CompareProvider>
           <div className="flex min-h-screen flex-col bg-cream text-text">
@@ -45,8 +51,7 @@ const App = () => {
             </a>
             <Navbar />
           <ScrollProgress />
-          <WhatsAppButton />
-          <CustomCursor />
+          {!isAdmin && <WhatsAppButton />}
           <main id="main-content" className="flex-1" tabIndex="-1">
               <Routes>
                 <Route element={<PageTransition />}>
@@ -61,8 +66,11 @@ const App = () => {
                   <Route path="/agents" element={<Agents />} />
                   <Route path="/agents/:id" element={<AgentProfile />} />
                   <Route path="/contact" element={<Contact />} />
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/:slug" element={<BlogPost />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
+                <Route path="/admin" element={<Admin />} />
               </Routes>
             </main>
             <Footer />
@@ -70,8 +78,14 @@ const App = () => {
           </div>
         </CompareProvider>
       </SavedHomesProvider>
-    </BrowserRouter>
+      </CurrencyProvider>
   )
 }
+
+const App = () => (
+  <BrowserRouter>
+    <AppContent />
+  </BrowserRouter>
+)
 
 export default App

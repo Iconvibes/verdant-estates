@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { formatPrice } from '../data/properties'
+import { useCurrency } from '../context/CurrencyContext'
 import { CalculatorIcon, ChevronDownIcon } from './icons'
 
 const NIGERIAN_RATES = [
@@ -10,8 +10,6 @@ const NIGERIAN_RATES = [
 ]
 
 const TERM_OPTIONS = [5, 10, 15, 20, 25, 30]
-
-const fmt = (n) => `₦${Math.round(n).toLocaleString('en-NG')}`
 
 function calculateMortgage(principal, annualRate, years) {
   if (principal <= 0 || annualRate <= 0 || years <= 0) {
@@ -26,6 +24,8 @@ function calculateMortgage(principal, annualRate, years) {
 }
 
 const MortgageCalculator = ({ price }) => {
+  const { formatPrice } = useCurrency()
+  const fmt = (n) => formatPrice(Math.round(n))
   const [downPaymentPct, setDownPaymentPct] = useState(20)
   const [rateIdx, setRateIdx] = useState(0)
   const [customRate, setCustomRate] = useState(false)

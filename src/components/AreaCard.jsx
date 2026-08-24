@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
-import { formatPrice } from '../data/properties'
+import { useCurrency } from '../context/CurrencyContext'
 import { ShieldIcon, TreeIcon, UsersIcon, WalkIcon } from './icons'
 
 const AreaCard = ({ area }) => {
+  const { formatPrice } = useCurrency()
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-xl bg-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-lift">
       <Link to={`/areas/${area.id}`} className="relative block aspect-[16/10] overflow-hidden bg-forest-deep">
@@ -20,7 +21,7 @@ const AreaCard = ({ area }) => {
       </Link>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 divide-x divide-cream border-t border-cream">
+      <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-cream border-t border-cream">
         <Stat icon={WalkIcon} value={area.walkabilityScore} label="Walk" />
         <Stat icon={ShieldIcon} value={area.safetyRating} label="Safety" />
         <Stat icon={UsersIcon} value={area.familyFriendliness} label="Family" />

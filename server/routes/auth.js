@@ -1,9 +1,13 @@
 import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
+import bcrypt from 'bcrypt'
+import rateLimit from 'express-rate-limit'
 import { findUserByEmail, createUser } from '../data/db.js'
 import { signToken, authenticate } from '../middleware/auth.js'
 
 const router = Router()
+
+const SALT_ROUNDS = 12
 
 const validate = (req, res) => {
   const errors = validationResult(req)
@@ -14,6 +18,15 @@ const validate = (req, res) => {
   return true
 }
 
+// Rate limit: 10 login attempts per 15 minutes per IP
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again later.' },
+})
+
 // POST /api/auth/register
 router.post(
   '/register',
@@ -22,24 +35,22 @@ router.post(
     body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
   ],
-  (req, res) => {
+  async (req, res) => {
     if (!validate(req, res)) return
 
-    const existing = findUserByEmail(req.body.email)
-    if (existing) {
-      return res.status(409).json({ error: 'An account with this email already exists' })
-    }
+    // Hash password with bcrypt
+    const hashedPassword = await bcrypt.hash(req.body.password, SALT_ROUNDS)
 
-    // In production, hash the password with bcrypt. Keeping it simple for dev.
     const user = createUser({
       name: req.body.name,
       email: req.body.email,
-      password: req.body.password, // TODO: hash in production
+      password: hashedPassword,
       role: 'user',
     })
 
     const token = signToken({ userId: user.id, email: user.email, role: user.role })
 
+    // Generic response — don't reveal if email already exists
     res.status(201).json({
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
       token,
@@ -50,15 +61,18 @@ router.post(
 // POST /api/auth/login
 router.post(
   '/login',
+  loginLimiter,
   [
     body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
     body('password').notEmpty().withMessage('Password is required'),
   ],
-  (req, res) => {
+  async (req, res) => {
     if (!validate(req, res)) return
 
     const user = findUserByEmail(req.body.email)
-    if (!user || user.password !== req.body.password) {
+    
+    // Compare password with bcrypt
+    if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
       return res.status(401).json({ error: 'Invalid email or password' })
     }
 

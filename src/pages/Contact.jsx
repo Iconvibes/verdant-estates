@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import SEO, { organisationSchema } from '../components/SEO'
 import useHead from '../hooks/useHead'
+import { getFrameUrl } from '../data/frames'
 import {
   CheckIcon,
   ClockIcon,
@@ -34,8 +35,14 @@ const Contact = () => {
 
   return (
     <>
-      <section className="bg-forest-deep py-16 md:py-20">
-        <div className="container-x">
+      <section className="relative overflow-hidden bg-forest-deep py-16 md:py-20">
+        <img
+          src={getFrameUrl(80)}
+          alt="Verdant Estates office"
+          className="absolute inset-0 h-full w-full object-cover opacity-20"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-forest-deep via-forest-deep/80 to-forest-deep/50" aria-hidden="true" />
+        <div className="container-x relative">
           <p className="eyebrow">Get in Touch</p>
           <h1 className="mt-3 font-serif text-4xl font-bold text-cream md:text-5xl">Book a Tour, Ask a Question</h1>
           <p className="mt-4 max-w-2xl text-cream/75">

@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { body, param, query, validationResult } from 'express-validator'
 import { getListings, getListingById, createListing, updateListing, deleteListing } from '../data/db.js'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -12,6 +12,18 @@ const validate = (req, res) => {
     return false
   }
   return true
+}
+
+// Fields allowed for create/update (prevents mass assignment)
+const ALLOWED_FIELDS = [
+  'name', 'type', 'price', 'address', 'coords', 'beds', 'baths',
+  'area', 'yearBuilt', 'image', 'tagline', 'description', 'features', 'agent',
+]
+
+function filterFields(data) {
+  return Object.fromEntries(
+    Object.entries(data).filter(([key]) => ALLOWED_FIELDS.includes(key)),
+  )
 }
 
 // GET /api/listings — public, supports query filters
@@ -65,6 +77,7 @@ router.get('/:id', [param('id').isInt({ min: 1 })], (req, res) => {
 router.post(
   '/',
   authenticate,
+  requireAdmin,
   [
     body('name').trim().notEmpty().withMessage('Name is required'),
     body('type').trim().notEmpty().withMessage('Type is required'),
@@ -77,7 +90,8 @@ router.post(
   (req, res) => {
     if (!validate(req, res)) return
 
-    const listing = createListing(req.body)
+    const filtered = filterFields(req.body)
+    const listing = createListing(filtered)
     res.status(201).json({ listing })
   },
 )
@@ -86,11 +100,13 @@ router.post(
 router.put(
   '/:id',
   authenticate,
+  requireAdmin,
   [param('id').isInt({ min: 1 })],
   (req, res) => {
     if (!validate(req, res)) return
 
-    const listing = updateListing(req.params.id, req.body)
+    const filtered = filterFields(req.body)
+    const listing = updateListing(req.params.id, filtered)
     if (!listing) {
       return res.status(404).json({ error: 'Listing not found' })
     }
@@ -99,7 +115,7 @@ router.put(
 )
 
 // DELETE /api/listings/:id — admin only
-router.delete('/:id', authenticate, [param('id').isInt({ min: 1 })], (req, res) => {
+router.delete('/:id', authenticate, requireAdmin, [param('id').isInt({ min: 1 })], (req, res) => {
   if (!validate(req, res)) return
 
   const deleted = deleteListing(req.params.id)
