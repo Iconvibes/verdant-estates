@@ -21,6 +21,7 @@ import {
   SearchIcon,
   TrashIcon,
 } from '../components/icons'
+import ImageUploader from '../components/ImageUploader'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -132,12 +133,7 @@ const LoginForm = ({ onLogin }) => {
           </button>
         </form>
 
-        <p className="mt-6 rounded-md bg-cream p-3 text-[0.7rem] leading-relaxed text-text/50">
-          Register a new admin account first via{' '}
-          <code className="font-mono text-forest">POST /api/auth/register</code> with{' '}
-          <code className="font-mono text-forest">role: &quot;admin&quot;</code>, or use an
-          existing account.
-        </p>
+
       </div>
     </section>
   )
@@ -472,7 +468,11 @@ const ListingsTab = ({ listings, onRefresh }) => {
 
 const ListingForm = ({ listing, onSaved, onCancel }) => {
   const initial = listing
-    ? { ...listing, featuresText: (listing.features || []).join('\n') }
+    ? {
+        ...listing,
+        featuresText: (listing.features || []).join('\n'),
+        images: listing.images || (listing.image ? [listing.image] : []),
+      }
     : {
         name: '',
         type: 'Detached Duplex',
@@ -484,6 +484,7 @@ const ListingForm = ({ listing, onSaved, onCancel }) => {
         area: 300,
         yearBuilt: 2025,
         image: '/images/properties/property-1.jpg',
+        images: [],
         tagline: '',
         description: '',
         featuresText: '',
@@ -504,6 +505,8 @@ const ListingForm = ({ listing, onSaved, onCancel }) => {
     setError('')
     try {
       const coords = form.coords.split(',').map((s) => parseFloat(s.trim()))
+      // Use first image as the primary image, images array for gallery
+      const images = form.images || []
       const payload = {
         ...form,
         price: Number(form.price),
@@ -513,6 +516,8 @@ const ListingForm = ({ listing, onSaved, onCancel }) => {
         yearBuilt: Number(form.yearBuilt),
         coords,
         features: form.featuresText.split('\n').filter((f) => f.trim()),
+        image: images.length > 0 ? images[0] : form.image || '',
+        images,
       }
       delete payload.featuresText
 
@@ -538,6 +543,16 @@ const ListingForm = ({ listing, onSaved, onCancel }) => {
         <button type="button" onClick={onCancel} className="rounded-md p-2 text-text/50 hover:text-forest">
           <CloseIcon className="h-5 w-5" />
         </button>
+      </div>
+
+      <div className="mt-6">
+        <label className="mb-2 block text-xs font-semibold text-forest">Property Photos</label>
+        <ImageUploader
+          images={form.images || []}
+          onChange={(images) => setForm((f) => ({ ...f, images }))}
+          maxImages={20}
+          listingId={listing?.id}
+        />
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -581,10 +596,7 @@ const ListingForm = ({ listing, onSaved, onCancel }) => {
           <label className="mb-1 block text-xs font-semibold text-forest">Year Built *</label>
           <input name="yearBuilt" type="number" min="1900" required value={form.yearBuilt} onChange={handleChange} className="w-full rounded-md border border-cream bg-cream px-4 py-2.5 text-sm text-text outline-none focus:border-bronze" />
         </div>
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-forest">Image Path</label>
-          <input name="image" value={form.image} onChange={handleChange} className="w-full rounded-md border border-cream bg-cream px-4 py-2.5 text-sm text-text outline-none focus:border-bronze" />
-        </div>
+
         <div className="sm:col-span-2 lg:col-span-3">
           <label className="mb-1 block text-xs font-semibold text-forest">Tagline</label>
           <input name="tagline" value={form.tagline} onChange={handleChange} className="w-full rounded-md border border-cream bg-cream px-4 py-2.5 text-sm text-text outline-none focus:border-bronze" />

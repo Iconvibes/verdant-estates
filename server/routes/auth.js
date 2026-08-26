@@ -2,7 +2,8 @@ import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 import bcrypt from 'bcrypt'
 import rateLimit from 'express-rate-limit'
-import { findUserByEmail, createUser } from '../data/db.js'
+import 'dotenv/config'
+import { findUserByEmail, createUser } from '../data/bridge.js'
 import { signToken, authenticate } from '../middleware/auth.js'
 
 const router = Router()
@@ -69,7 +70,7 @@ router.post(
   async (req, res) => {
     if (!validate(req, res)) return
 
-    const user = findUserByEmail(req.body.email)
+    const user = await findUserByEmail(req.body.email)
     
     // Compare password with bcrypt
     if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
@@ -86,8 +87,8 @@ router.post(
 )
 
 // GET /api/auth/me — get current user from token
-router.get('/me', authenticate, (req, res) => {
-  const user = findUserByEmail(req.user.email)
+router.get('/me', authenticate, async (req, res) => {
+  const user = await findUserByEmail(req.user.email)
   if (!user) {
     return res.status(404).json({ error: 'User not found' })
   }

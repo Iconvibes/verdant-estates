@@ -45,7 +45,9 @@ const ListingDetail = () => {
     return [start, start + 15, start + 30].map((i) => getFrameUrl(i % TOTAL_FRAMES))
   }, [property])
 
-  const [activeImage, setActiveImage] = useState(property ? property.image : null)
+  const [activeImage, setActiveImage] = useState(property ? (
+    property.images && property.images.length > 0 ? property.images[0] : property.image
+  ) : null)
   const [viewTab, setViewTab] = useState('gallery') // 'gallery' | 'floorplan'
 
   // Parallax refs
@@ -139,7 +141,10 @@ const ListingDetail = () => {
     )
   }
 
-  const gallery = [property.image, ...interiorShots]
+  // Use images array if available, otherwise fall back to image + interior shots
+  const gallery = property.images && property.images.length > 0
+    ? property.images
+    : [property.image, ...interiorShots]
   const related = getAllProperties().filter((p) => p.id !== property.id).slice(0, 3)
 
   return (

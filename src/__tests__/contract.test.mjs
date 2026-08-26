@@ -229,7 +229,7 @@ describe('Navigation', () => {
     // [navbarLabel,        footerLabel]
     ['Home',               'Home'],
     ['Listings',           'All Listings'],
-    ['Areas',              'Neighbourhood Guides'],
+    ['Neighbourhoods',     'Neighbourhood Guides'],
     ['Team',               'Our Team'],
     ['About',              'About Us'],
     ['Insights',           'Market Insights'],

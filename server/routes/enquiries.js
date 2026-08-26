@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 import rateLimit from 'express-rate-limit'
-import { createEnquiry, getEnquiries, updateEnquiryStatus } from '../data/db.js'
+import { createEnquiry, getEnquiries, updateEnquiryStatus } from '../data/bridge.js'
 import { authenticate } from '../middleware/auth.js'
 
 const router = Router()
@@ -36,10 +36,10 @@ router.post(
     body('message').trim().notEmpty().withMessage('Message is required'),
     body('propertyId').optional().isInt({ min: 1 }),
   ],
-  (req, res) => {
+  async (req, res) => {
     if (!validate(req, res)) return
 
-    const enquiry = createEnquiry({
+    const enquiry = await createEnquiry({
       name: req.body.name,
       email: req.body.email,
       phone: req.body.phone || null,
@@ -49,9 +49,9 @@ router.post(
       ip: req.ip,
     })
 
-    // In production, trigger email/WhatsApp notification here:
-    // await sendEmailNotification(enquiry)
-    // await sendWhatsAppNotification(enquiry)
+    // TODO: Send email notifications (Resend)
+    // sendEnquiryConfirmation(enquiry)
+    // sendNewEnquiryAlert(enquiry)
 
     res.status(201).json({
       success: true,
@@ -62,8 +62,8 @@ router.post(
 )
 
 // GET /api/enquiries — admin only
-router.get('/', authenticate, (_req, res) => {
-  const enquiries = getEnquiries()
+router.get('/', authenticate, async (_req, res) => {
+  const enquiries = await getEnquiries()
   res.json({ enquiries, total: enquiries.length })
 })
 
@@ -72,10 +72,10 @@ router.patch(
   '/:id',
   authenticate,
   [body('status').isIn(['new', 'contacted', 'resolved', 'archived'])],
-  (req, res) => {
+  async (req, res) => {
     if (!validate(req, res)) return
 
-    const updated = updateEnquiryStatus(req.params.id, req.body.status)
+    const updated = await updateEnquiryStatus(req.params.id, req.body.status)
     if (!updated) {
       return res.status(404).json({ error: 'Enquiry not found' })
     }

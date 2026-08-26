@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { body, param, validationResult } from 'express-validator'
-import { getSavedHomes, toggleSavedHome, clearSavedHomes, getListingById } from '../data/db.js'
+import { getSavedHomes, toggleSavedHome, clearSavedHomes, getListingById } from '../data/bridge.js'
 import { authenticate } from '../middleware/auth.js'
 
 const router = Router()
@@ -18,11 +18,13 @@ const validate = (req, res) => {
 }
 
 // GET /api/saved — get all saved property IDs (with full listing data)
-router.get('/', (req, res) => {
-  const propertyIds = getSavedHomes(req.user.userId)
-  const listings = propertyIds
-    .map((id) => getListingById(id))
-    .filter(Boolean)
+router.get('/', async (req, res) => {
+  const propertyIds = await getSavedHomes(req.user.userId)
+  const listings = []
+  for (const id of propertyIds) {
+    const listing = await getListingById(id)
+    if (listing) listings.push(listing)
+  }
 
   res.json({ savedIds: propertyIds, listings })
 })
@@ -31,19 +33,19 @@ router.get('/', (req, res) => {
 router.post(
   '/toggle',
   [body('propertyId').isInt({ min: 1 }).withMessage('propertyId must be a positive integer')],
-  (req, res) => {
+  async (req, res) => {
     if (!validate(req, res)) return
 
-    const result = toggleSavedHome(req.user.userId, req.body.propertyId)
-    const allIds = getSavedHomes(req.user.userId)
+    const result = await toggleSavedHome(req.user.userId, req.body.propertyId)
+    const allIds = await getSavedHomes(req.user.userId)
 
     res.json({ ...result, savedIds: allIds })
   },
 )
 
 // DELETE /api/saved — clear all saved homes
-router.delete('/', (req, res) => {
-  clearSavedHomes(req.user.userId)
+router.delete('/', async (req, res) => {
+  await clearSavedHomes(req.user.userId)
   res.json({ success: true, savedIds: [] })
 })
 

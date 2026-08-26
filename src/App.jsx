@@ -46,12 +46,16 @@ const AppContent = () => {
       <SavedHomesProvider>
         <CompareProvider>
           <div className="flex min-h-screen flex-col bg-cream text-text">
-            <a href="#main-content" className="skip-link">
-              Skip to content
-            </a>
-            <Navbar />
-          <ScrollProgress />
-          {!isAdmin && <WhatsAppButton />}
+            {!isAdmin && (
+              <>
+                <a href="#main-content" className="skip-link">
+                  Skip to content
+                </a>
+                <Navbar />
+                <ScrollProgress />
+                <WhatsAppButton />
+              </>
+            )}
           <main id="main-content" className="flex-1" tabIndex="-1">
               <Routes>
                 <Route element={<PageTransition />}>
@@ -73,8 +77,8 @@ const AppContent = () => {
                 <Route path="/admin" element={<Admin />} />
               </Routes>
             </main>
-            <Footer />
-            <CompareBar />
+            {!isAdmin && <Footer />}
+            {!isAdmin && <CompareBar />}
           </div>
         </CompareProvider>
       </SavedHomesProvider>

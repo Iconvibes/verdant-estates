@@ -1,15 +1,8 @@
 import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 import rateLimit from 'express-rate-limit'
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { getListings } from '../data/db.js'
+import { getAlerts, subscribeAlert, unsubscribeAlert, getListings } from '../data/bridge.js'
 import { authenticate } from '../middleware/auth.js'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const ALERTS_FILE = join(__dirname, '..', 'data', 'alerts.json')
-const NOTIFICATIONS_FILE = join(__dirname, '..', 'data', 'notifications.json')
 
 const validate = (req, res) => {
   const errors = validationResult(req)
@@ -20,85 +13,40 @@ const validate = (req, res) => {
   return true
 }
 
-// --- Helpers ---
-function readJSON(file, fallback = []) {
-  if (!existsSync(file)) {
-    writeFileSync(file, JSON.stringify(fallback, null, 2))
-    return fallback
-  }
-  return JSON.parse(readFileSync(file, 'utf-8'))
-}
-
-function writeJSON(file, data) {
-  writeFileSync(file, JSON.stringify(data, null, 2))
-}
-
-function getAlerts() {
-  return readJSON(ALERTS_FILE)
-}
-
-function saveAlerts(alerts) {
-  writeJSON(ALERTS_FILE, alerts)
-}
-
-function getNotifications() {
-  return readJSON(NOTIFICATIONS_FILE)
-}
-
-function saveNotifications(notifications) {
-  writeJSON(NOTIFICATIONS_FILE, notifications)
-}
-
 /**
  * Check if a new listing matches any alert subscriptions.
- * Returns an array of { alertId, email, property } for each match.
+ * Returns an array of { alertId, email, name, property } for each match.
  */
-function findMatchingAlerts(newListing) {
-  const alerts = getAlerts()
-  const matches = []
+export function findMatchingAlerts(newListing) {
+  // getAlerts may be sync (JSON) or async (Supabase)
+  const result = getAlerts()
+  // If it returns a Promise, we handle it in the calling code
+  if (result && typeof result.then === 'function') {
+    return result.then(alerts => matchAlerts(alerts, newListing))
+  }
+  return matchAlerts(result, newListing)
+}
 
+function matchAlerts(alerts, newListing) {
+  const matches = []
   for (const alert of alerts) {
     if (!alert.active) continue
-
-    const criteria = alert.criteria || {}
+    const criteria = alert.filters || alert.criteria || {}
     let matched = true
 
-    // Type filter
-    if (criteria.type && criteria.type !== 'All' && newListing.type !== criteria.type) {
-      matched = false
-    }
-
-    // Price range
-    if (criteria.minPrice && newListing.price < criteria.minPrice) {
-      matched = false
-    }
-    if (criteria.maxPrice && newListing.price > criteria.maxPrice) {
-      matched = false
-    }
-
-    // Bedrooms
-    if (criteria.beds && newListing.beds < criteria.beds) {
-      matched = false
-    }
-
-    // Area filter (neighbourhood search)
+    if (criteria.type && criteria.type !== 'All' && newListing.type !== criteria.type) matched = false
+    if (criteria.minPrice && newListing.price < criteria.minPrice) matched = false
+    if (criteria.maxPrice && newListing.price > criteria.maxPrice) matched = false
+    if (criteria.beds && newListing.beds < criteria.beds) matched = false
     if (criteria.area) {
       const q = criteria.area.toLowerCase()
-      if (!newListing.address.toLowerCase().includes(q)) {
-        matched = false
-      }
+      if (!newListing.address.toLowerCase().includes(q)) matched = false
     }
 
     if (matched) {
-      matches.push({
-        alertId: alert.id,
-        email: alert.email,
-        name: alert.name,
-        property: newListing,
-      })
+      matches.push({ alertId: alert.id, email: alert.email, name: alert.name, property: newListing })
     }
   }
-
   return matches
 }
 
@@ -127,36 +75,14 @@ router.post(
     body('criteria.beds').optional().isInt({ min: 1 }),
     body('criteria.area').optional().isString(),
   ],
-  (req, res) => {
+  async (req, res) => {
     if (!validate(req, res)) return
 
-    const alerts = getAlerts()
-
-    // Check for duplicate email + same criteria
-    const existing = alerts.find(
-      (a) =>
-        a.email === req.body.email &&
-        a.active &&
-        JSON.stringify(a.criteria) === JSON.stringify(req.body.criteria || {}),
-    )
-    if (existing) {
-      return res.status(409).json({
-        error: 'You already have an active alert for these criteria.',
-        alertId: existing.id,
-      })
-    }
-
-    const alert = {
-      id: crypto.randomUUID(),
+    const alert = await subscribeAlert({
       email: req.body.email,
       name: req.body.name || null,
-      criteria: req.body.criteria || {},
-      active: true,
-      createdAt: new Date().toISOString(),
-    }
-
-    alerts.push(alert)
-    saveAlerts(alerts)
+      filters: req.body.criteria || {},
+    })
 
     res.status(201).json({
       success: true,
@@ -167,60 +93,38 @@ router.post(
 )
 
 // GET /api/alerts — admin only
-router.get('/', authenticate, (_req, res) => {
-  const alerts = getAlerts()
+router.get('/', authenticate, async (_req, res) => {
+  const alerts = await getAlerts()
   res.json({ alerts, total: alerts.length })
 })
 
 // DELETE /api/alerts/:id — public (allows unsubscribe via link)
-router.delete('/:id', (req, res) => {
-  const alerts = getAlerts()
-  const index = alerts.findIndex((a) => a.id === req.params.id)
-  if (index === -1) {
+router.delete('/:id', async (req, res) => {
+  const result = await unsubscribeAlert(req.params.id)
+  if (!result) {
     return res.status(404).json({ error: 'Alert not found' })
   }
-
-  alerts[index].active = false
-  alerts[index].unsubscribedAt = new Date().toISOString()
-  saveAlerts(alerts)
-
   res.json({ success: true, message: 'Alert unsubscribed successfully.' })
 })
 
 // POST /api/alerts/notify — admin only, triggers notifications for a new listing
 router.post('/notify', authenticate, [
   body('listingId').isInt({ min: 1 }).withMessage('listingId required'),
-], (req, res) => {
+], async (req, res) => {
   if (!validate(req, res)) return
 
-  const listing = getListings().find((l) => l.id === Number(req.body.listingId))
+  const listing = await getListings().then(listings =>
+    listings.find((l) => l.id === Number(req.body.listingId))
+  )
   if (!listing) {
     return res.status(404).json({ error: 'Listing not found' })
   }
 
-  const matches = findMatchingAlerts(listing)
-  const notifications = getNotifications()
+  const alerts = await getAlerts()
+  const matches = matchAlerts(alerts, listing)
 
-  for (const match of matches) {
-    notifications.push({
-      id: crypto.randomUUID(),
-      alertId: match.alertId,
-      email: match.email,
-      listingId: listing.id,
-      listingName: listing.name,
-      sentAt: new Date().toISOString(),
-    })
-  }
-  saveNotifications(notifications)
-
-  // In production, send actual emails here:
-  // for (const match of matches) {
-  //   await sendEmail({
-  //     to: match.email,
-  //     subject: `New listing: ${listing.name}`,
-  //     html: `...`
-  //   })
-  // }
+  // TODO: Send alert emails (Resend)
+  // for (const match of matches) { sendAlertMatch(match, listing) }
 
   res.json({
     success: true,
@@ -233,8 +137,8 @@ router.post('/notify', authenticate, [
 })
 
 // GET /api/alerts/check/:email — check active alerts for a specific email
-router.get('/check/:email', (req, res) => {
-  const alerts = getAlerts()
+router.get('/check/:email', async (req, res) => {
+  const alerts = await getAlerts()
   const active = alerts.filter(
     (a) => a.email === req.params.email && a.active,
   )
@@ -242,4 +146,3 @@ router.get('/check/:email', (req, res) => {
 })
 
 export default router
-export { findMatchingAlerts }

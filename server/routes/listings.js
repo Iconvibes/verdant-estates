@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { body, param, query, validationResult } from 'express-validator'
-import { getListings, getListingById, createListing, updateListing, deleteListing } from '../data/db.js'
+import { getListings, getListingById, createListing, updateListing, deleteListing } from '../data/bridge.js'
 import { authenticate, requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
@@ -17,7 +17,7 @@ const validate = (req, res) => {
 // Fields allowed for create/update (prevents mass assignment)
 const ALLOWED_FIELDS = [
   'name', 'type', 'price', 'address', 'coords', 'beds', 'baths',
-  'area', 'yearBuilt', 'image', 'tagline', 'description', 'features', 'agent',
+  'area', 'yearBuilt', 'image', 'images', 'floor_plan', 'tagline', 'description', 'features', 'agent',
 ]
 
 function filterFields(data) {
@@ -37,10 +37,10 @@ router.get(
     query('q').optional().isString(),
     query('sort').optional().isIn(['featured', 'price-asc', 'price-desc', 'newest']),
   ],
-  (req, res) => {
+  async (req, res) => {
     if (!validate(req, res)) return
 
-    const listings = getListings(req.query)
+    const listings = await getListings(req.query)
 
     // Sort
     const sort = req.query.sort || 'featured'
@@ -56,17 +56,17 @@ router.get(
 )
 
 // GET /api/listings/types — get unique property types
-router.get('/types', (_req, res) => {
-  const listings = getListings()
+router.get('/types', async (_req, res) => {
+  const listings = await getListings()
   const types = ['All', ...new Set(listings.map((l) => l.type))]
   res.json({ types })
 })
 
 // GET /api/listings/:id — public
-router.get('/:id', [param('id').isInt({ min: 1 })], (req, res) => {
+router.get('/:id', [param('id').isInt({ min: 1 })], async (req, res) => {
   if (!validate(req, res)) return
 
-  const listing = getListingById(req.params.id)
+  const listing = await getListingById(req.params.id)
   if (!listing) {
     return res.status(404).json({ error: 'Listing not found' })
   }
@@ -87,11 +87,16 @@ router.post(
     body('baths').isInt({ min: 1 }).withMessage('Bathrooms must be at least 1'),
     body('area').isNumeric().withMessage('Area must be a number'),
   ],
-  (req, res) => {
+  async (req, res) => {
     if (!validate(req, res)) return
 
     const filtered = filterFields(req.body)
-    const listing = createListing(filtered)
+    const listing = await createListing(filtered)
+
+    // TODO: Check alert subscriptions and send notification emails
+    // const matches = findMatchingAlerts(listing)
+    // for (const match of matches) { sendAlertMatch(match, listing) }
+
     res.status(201).json({ listing })
   },
 )
@@ -102,11 +107,11 @@ router.put(
   authenticate,
   requireAdmin,
   [param('id').isInt({ min: 1 })],
-  (req, res) => {
+  async (req, res) => {
     if (!validate(req, res)) return
 
     const filtered = filterFields(req.body)
-    const listing = updateListing(req.params.id, filtered)
+    const listing = await updateListing(req.params.id, filtered)
     if (!listing) {
       return res.status(404).json({ error: 'Listing not found' })
     }
@@ -115,10 +120,10 @@ router.put(
 )
 
 // DELETE /api/listings/:id — admin only
-router.delete('/:id', authenticate, requireAdmin, [param('id').isInt({ min: 1 })], (req, res) => {
+router.delete('/:id', authenticate, requireAdmin, [param('id').isInt({ min: 1 })], async (req, res) => {
   if (!validate(req, res)) return
 
-  const deleted = deleteListing(req.params.id)
+  const deleted = await deleteListing(req.params.id)
   if (!deleted) {
     return res.status(404).json({ error: 'Listing not found' })
   }
