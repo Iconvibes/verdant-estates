@@ -77,6 +77,7 @@ CREATE INDEX IF NOT EXISTS idx_enquiries_status ON enquiries(status);
 CREATE INDEX IF NOT EXISTS idx_saved_homes_user ON saved_homes(user_id);
 CREATE INDEX IF NOT EXISTS idx_alerts_email ON alerts(email);
 CREATE INDEX IF NOT EXISTS idx_alerts_active ON alerts(active);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
 -- 6. Updated_at trigger (auto-set on update)
 CREATE OR REPLACE FUNCTION update_updated_at()
