@@ -18,6 +18,10 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
   supabase = mod.default
 }
 
+// Security: restrict uploads to safe image extensions only
+const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp'])
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB decoded
+
 const router = Router()
 
 // POST /api/upload — Upload a single image
@@ -30,12 +34,22 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'File data and filename are required' })
     }
 
+    // Validate extension
+    const ext = (filename.split('.').pop() || '').toLowerCase()
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      return res.status(400).json({ error: 'Only JPG, PNG, and WebP images are allowed' })
+    }
+
     // Decode base64 data
     const base64Data = file.replace(/^data:image\/\w+;base64,/, '')
     const buffer = Buffer.from(base64Data, 'base64')
 
+    // Validate decoded size
+    if (buffer.length > MAX_FILE_SIZE) {
+      return res.status(400).json({ error: 'File too large (max 10MB)' })
+    }
+
     // Generate unique filename
-    const ext = filename.split('.').pop() || 'jpg'
     const uniqueName = `${uuidv4()}.${ext}`
     const filePath = `listings/${uniqueName}`
 
@@ -81,10 +95,14 @@ router.post('/multiple', authenticate, requireAdmin, async (req, res) => {
     const results = []
 
     for (const { file, filename } of files) {
+      const ext = (filename.split('.').pop() || '').toLowerCase()
+      if (!ALLOWED_EXTENSIONS.has(ext)) continue
+
       const base64Data = file.replace(/^data:image\/\w+;base64,/, '')
       const buffer = Buffer.from(base64Data, 'base64')
 
-      const ext = filename.split('.').pop() || 'jpg'
+      if (buffer.length > MAX_FILE_SIZE) continue
+
       const uniqueName = `${uuidv4()}.${ext}`
       const filePath = `listings/${uniqueName}`
 

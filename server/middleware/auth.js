@@ -7,8 +7,11 @@ if (!JWT_SECRET) {
   process.exit(1)
 }
 
+// Pin algorithm to prevent algorithm confusion attacks (OWASP recommendation)
+const JWT_ALGORITHM = 'HS256'
+
 export function signToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' })
+  return jwt.sign(payload, JWT_SECRET, { algorithm: JWT_ALGORITHM, expiresIn: '30d' })
 }
 
 export function authenticate(req, res, next) {
@@ -19,7 +22,7 @@ export function authenticate(req, res, next) {
 
   try {
     const token = header.slice(7)
-    const decoded = jwt.verify(token, JWT_SECRET)
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: [JWT_ALGORITHM] })
     req.user = decoded
     next()
   } catch {

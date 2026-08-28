@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 import rateLimit from 'express-rate-limit'
 import { createEnquiry, getEnquiries, updateEnquiryStatus } from '../data/bridge.js'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -71,6 +71,7 @@ router.get('/', authenticate, async (_req, res) => {
 router.patch(
   '/:id',
   authenticate,
+  requireAdmin,
   [body('status').isIn(['new', 'contacted', 'resolved', 'archived'])],
   async (req, res) => {
     if (!validate(req, res)) return

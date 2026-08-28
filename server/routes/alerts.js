@@ -59,6 +59,15 @@ const alertLimiter = rateLimit({
   message: { error: 'Too many subscription attempts. Please try again later.' },
 })
 
+// Rate limit: 10 unsubscribes per IP per hour (prevents enumeration)
+const unsubscribeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again later.' },
+})
+
 const router = Router()
 
 // POST /api/alerts — public, rate limited
@@ -98,8 +107,8 @@ router.get('/', authenticate, async (_req, res) => {
   res.json({ alerts, total: alerts.length })
 })
 
-// DELETE /api/alerts/:id — public (allows unsubscribe via link)
-router.delete('/:id', async (req, res) => {
+// DELETE /api/alerts/:id — public with rate limit (allows unsubscribe via email link)
+router.delete('/:id', unsubscribeLimiter, async (req, res) => {
   const result = await unsubscribeAlert(req.params.id)
   if (!result) {
     return res.status(404).json({ error: 'Alert not found' })
@@ -136,8 +145,8 @@ router.post('/notify', authenticate, [
   })
 })
 
-// GET /api/alerts/check/:email — check active alerts for a specific email
-router.get('/check/:email', async (req, res) => {
+// GET /api/alerts/check/:email — check active alerts for a specific email (rate limited)
+router.get('/check/:email', unsubscribeLimiter, async (req, res) => {
   const alerts = await getAlerts()
   const active = alerts.filter(
     (a) => a.email === req.params.email && a.active,
