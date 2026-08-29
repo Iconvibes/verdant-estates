@@ -32,11 +32,15 @@ const OVERLAYS = [
   },
 ]
 
+// How many frames ahead/behind to preload around the current position
+const PRELOAD_WINDOW = 12
+
 const ScrollHouseTour = () => {
   const sectionRef = useRef(null)
   const imgRef = useRef(null)
   const textRefs = useRef([])
   const [isMobile, setIsMobile] = useState(false)
+  const [heroUrl, setHeroUrl] = useState('')
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)')
@@ -46,6 +50,15 @@ const ScrollHouseTour = () => {
     return () => mq.removeEventListener('change', sync)
   }, [])
 
+  // Wait for frame 0 to resolve, then show it
+  useEffect(() => {
+    let cancelled = false
+    waitForFrame(0).then((url) => {
+      if (!cancelled && url) setHeroUrl(url)
+    })
+    return () => { cancelled = true }
+  }, [])
+
   useLayoutEffect(() => {
     if (isMobile) return undefined
 
@@ -53,8 +66,8 @@ const ScrollHouseTour = () => {
     let currentFrame = -1
     let destroyed = false
 
-    // Frame cache — filled eagerly in the background
     const frameCache = {}
+    const inflight = new Set()
 
     const setFrame = (index) => {
       if (index === currentFrame) return
@@ -62,8 +75,25 @@ const ScrollHouseTour = () => {
       const url = frameCache[index] || getFrameUrl(index)
       if (url) {
         frameCache[index] = url
-        // Guard against setting src after unmount
         if (!destroyed) img.src = url
+      }
+    }
+
+    /**
+     * Preload frames within ±PRELOAD_WINDOW of the given index.
+     * Skips frames already cached or already being fetched.
+     */
+    const preloadNearby = (centerIndex) => {
+      const lo = Math.max(0, centerIndex - PRELOAD_WINDOW)
+      const hi = Math.min(TOTAL_FRAMES - 1, centerIndex + PRELOAD_WINDOW)
+      for (let i = lo; i <= hi; i++) {
+        if (frameCache[i] || inflight.has(i)) continue
+        inflight.add(i)
+        waitForFrame(i).then((url) => {
+          if (destroyed) return
+          if (url) frameCache[i] = url
+          inflight.delete(i)
+        })
       }
     }
 
@@ -81,6 +111,8 @@ const ScrollHouseTour = () => {
             Math.max(0, Math.round(self.progress * (TOTAL_FRAMES - 1))),
           )
           setFrame(index)
+          // Preload frames around current scroll position
+          preloadNearby(index)
         },
       })
 
@@ -101,17 +133,10 @@ const ScrollHouseTour = () => {
       })
     }, sectionRef)
 
-    // Eagerly preload every frame in the background so scrub is seamless.
-    // setFrame() picks up from frameCache on each scroll tick.
-    ;(async () => {
-      for (let i = 0; i < TOTAL_FRAMES; i++) {
-        if (destroyed) break
-        const url = await waitForFrame(i)
-        if (url) frameCache[i] = url
-      }
-    })()
+    // Kick off frame 0 + its immediate neighbours
+    preloadNearby(0)
 
-    // Set frame 0 as soon as it resolves — this is the first visible frame
+    // Set frame 0 as soon as it resolves
     waitForFrame(0).then((url) => {
       if (!destroyed && url) {
         frameCache[0] = url
@@ -131,10 +156,9 @@ const ScrollHouseTour = () => {
       className="relative h-screen w-full overflow-hidden bg-forest-deep"
       aria-label="Scroll-driven virtual walkthrough of a Verdant Estates home"
     >
-      {/* GSAP owns this img — React must NOT set src after mount */}
       <img
         ref={imgRef}
-        src=""
+        src={heroUrl}
         alt="Virtual walkthrough of a modern Verdant Estates home"
         className="absolute inset-0 h-full w-full object-cover"
       />
