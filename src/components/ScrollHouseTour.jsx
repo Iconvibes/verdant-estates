@@ -32,8 +32,8 @@ const OVERLAYS = [
   },
 ]
 
-// How many frames ahead/behind to preload around the current position
-const PRELOAD_WINDOW = 12
+// Frames to preload ahead/behind the current scroll position
+const PRELOAD_WINDOW = 8
 
 const ScrollHouseTour = () => {
   const sectionRef = useRef(null)
@@ -50,7 +50,6 @@ const ScrollHouseTour = () => {
     return () => mq.removeEventListener('change', sync)
   }, [])
 
-  // Wait for frame 0 to resolve, then show it
   useEffect(() => {
     let cancelled = false
     waitForFrame(0).then((url) => {
@@ -66,33 +65,53 @@ const ScrollHouseTour = () => {
     let currentFrame = -1
     let destroyed = false
 
-    const frameCache = {}
+    // Cache decoded image objects so we can swap src without decode jank
+    const frameCache = {}     // index → URL string
+    const decodedCache = {}   // index → HTMLImageElement (decoded)
     const inflight = new Set()
 
+    /**
+     * Swap the visible frame. If we already have a pre-decoded
+     * Image object, use its src directly — zero main-thread decode.
+     */
     const setFrame = (index) => {
       if (index === currentFrame) return
       currentFrame = index
       const url = frameCache[index] || getFrameUrl(index)
       if (url) {
         frameCache[index] = url
-        if (!destroyed) img.src = url
+        // Use pre-decoded image if available (instant swap, no jank)
+        if (decodedCache[index] && !destroyed) {
+          img.src = decodedCache[index].src
+        } else if (!destroyed) {
+          img.src = url
+        }
       }
     }
 
     /**
-     * Preload frames within ±PRELOAD_WINDOW of the given index.
-     * Skips frames already cached or already being fetched.
+     * Pre-decode frames near the current position.
+     * Creates an offscreen Image, calls .decode(), and stores it.
+     * decode() returns a Promise and runs off the main thread.
      */
     const preloadNearby = (centerIndex) => {
       const lo = Math.max(0, centerIndex - PRELOAD_WINDOW)
       const hi = Math.min(TOTAL_FRAMES - 1, centerIndex + PRELOAD_WINDOW)
       for (let i = lo; i <= hi; i++) {
-        if (frameCache[i] || inflight.has(i)) continue
+        if (decodedCache[i] || inflight.has(i)) continue
         inflight.add(i)
         waitForFrame(i).then((url) => {
-          if (destroyed) return
-          if (url) frameCache[i] = url
-          inflight.delete(i)
+          if (destroyed || !url) { inflight.delete(i); return }
+          frameCache[i] = url
+          // Pre-decode off the main thread
+          const preloadImg = new Image()
+          preloadImg.src = url
+          preloadImg.decode().then(() => {
+            if (!destroyed) decodedCache[i] = preloadImg
+          }).catch(() => {
+            // decode() can fail on low-memory — fall back to direct src
+            if (!destroyed) frameCache[i] = url
+          }).finally(() => { inflight.delete(i) })
         })
       }
     }
@@ -102,7 +121,7 @@ const ScrollHouseTour = () => {
         trigger: sectionRef.current,
         start: 'top top',
         end: () => `+=${window.innerHeight * 4}`,
-        scrub: 2,
+        scrub: 0.5,
         pin: true,
         anticipatePin: 1,
         onUpdate: (self) => {
@@ -111,7 +130,6 @@ const ScrollHouseTour = () => {
             Math.max(0, Math.round(self.progress * (TOTAL_FRAMES - 1))),
           )
           setFrame(index)
-          // Preload frames around current scroll position
           preloadNearby(index)
         },
       })
@@ -121,7 +139,7 @@ const ScrollHouseTour = () => {
           trigger: sectionRef.current,
           start: 'top top',
           end: () => `+=${window.innerHeight * 4}`,
-          scrub: 1.5,
+          scrub: 1,
         },
       })
 
@@ -133,10 +151,8 @@ const ScrollHouseTour = () => {
       })
     }, sectionRef)
 
-    // Kick off frame 0 + its immediate neighbours
+    // Kick off frame 0 preload + decode
     preloadNearby(0)
-
-    // Set frame 0 as soon as it resolves
     waitForFrame(0).then((url) => {
       if (!destroyed && url) {
         frameCache[0] = url
@@ -161,6 +177,7 @@ const ScrollHouseTour = () => {
         src={heroUrl}
         alt="Virtual walkthrough of a modern Verdant Estates home"
         className="absolute inset-0 h-full w-full object-cover"
+        style={{ willChange: 'transform' }}
       />
 
       {/* message blocks */}
