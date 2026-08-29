@@ -3,6 +3,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "installCommand": "npm install",
+  "env": {
+    "NPM_CONFIG_PRODUCTION": "false"
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
