@@ -15,15 +15,16 @@ const frameModules = import.meta.glob('/src/assets/house-tour/frame-*.jpg', {
 
 const sortedKeys = Object.keys(frameModules).sort()
 const urlCache = {}
-const resolveCallbacks = {}
 
 /**
  * Ensure a frame's dynamic import is in-flight (or resolved).
  * Returns a Promise that resolves to the URL string.
  */
+const inflight = {}
+
 function ensureFrame(index) {
   if (urlCache[index]) return Promise.resolve(urlCache[index])
-  if (resolveCallbacks[index]) return resolveCallbacks[index]
+  if (inflight[index]) return inflight[index]
 
   const key = sortedKeys[index]
   if (!key) return Promise.resolve('')
@@ -31,16 +32,11 @@ function ensureFrame(index) {
   const promise = frameModules[key]().then((mod) => {
     const url = mod.default || mod
     urlCache[index] = url
-    // Notify any waiting callbacks
-    const cbs = resolveCallbacks[index]
-    if (cbs) {
-      delete resolveCallbacks[index]
-      cbs.forEach((cb) => cb(url))
-    }
+    delete inflight[index]
     return url
   })
 
-  resolveCallbacks[index] = resolveCallbacks[index] || []
+  inflight[index] = promise
   return promise
 }
 
