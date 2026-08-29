@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { getFrameUrl, TOTAL_FRAMES } from '../data/frames'
+import { getFrameUrl, TOTAL_FRAMES, useFrameUrl } from '../data/frames'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -37,6 +37,7 @@ const ScrollHouseTour = () => {
   const imgRef = useRef(null)
   const textRefs = useRef([])
   const [isMobile, setIsMobile] = useState(false)
+  const initialFrameUrl = useFrameUrl(0)
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)')
@@ -46,19 +47,30 @@ const ScrollHouseTour = () => {
     return () => mq.removeEventListener('change', sync)
   }, [])
 
+  // When the initial frame URL resolves, push it into the img element
+  // (bypasses React's img reconciliation for smoother scroll performance)
+  useEffect(() => {
+    if (initialFrameUrl && imgRef.current && !imgRef.current.src) {
+      imgRef.current.src = initialFrameUrl
+    }
+  }, [initialFrameUrl])
+
   useLayoutEffect(() => {
     if (isMobile) return undefined
 
     const img = imgRef.current
-    let currentFrame = 0
+    let currentFrame = -1
 
     const frameCache = {}
     const setFrame = (index) => {
       if (index === currentFrame) return
       currentFrame = index
       // Lazy-load frame URL on first access
-      if (!frameCache[index]) frameCache[index] = getFrameUrl(index)
-      if (frameCache[index]) img.src = frameCache[index]
+      const url = frameCache[index] || getFrameUrl(index)
+      if (url) {
+        frameCache[index] = url
+        img.src = url
+      }
       // preload the next two frames for a seamless walkthrough
       for (let n = 1; n <= 2; n++) {
         const nextIdx = index + n
@@ -66,6 +78,11 @@ const ScrollHouseTour = () => {
           frameCache[nextIdx] = getFrameUrl(nextIdx)
         }
       }
+    }
+
+    // Set frame 0 immediately if available
+    if (getFrameUrl(0)) {
+      setFrame(0)
     }
 
     const ctx = gsap.context(() => {
@@ -116,7 +133,7 @@ const ScrollHouseTour = () => {
     >
       <img
         ref={imgRef}
-        src={getFrameUrl(0)}
+        src={initialFrameUrl || getFrameUrl(0)}
         alt="Virtual walkthrough of a modern Verdant Estates home"
         className="absolute inset-0 h-full w-full object-cover"
       />
