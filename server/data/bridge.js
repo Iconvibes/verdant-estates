@@ -35,6 +35,7 @@ export const {
   updateEnquiryStatus,
   findUserByEmail,
   createUser,
+  updateUserPassword,
   getSavedHomes,
   toggleSavedHome,
   clearSavedHomes,
@@ -42,4 +43,8 @@ export const {
   unsubscribeAlert,
   getAlerts,
   getAlertsByEmail,
+  saveAlert,
+  saveAlerts,
+  saveNotifications,
+  getNotifications,
 } = db

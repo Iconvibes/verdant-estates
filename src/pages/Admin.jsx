@@ -5,6 +5,7 @@ import {
   setToken,
   getToken,
 } from '../api'
+import { KeyIcon } from '../components/icons'
 import useHead from '../hooks/useHead'
 import { formatPrice } from '../data'
 import SEO, { organisationSchema } from '../components/SEO'
@@ -23,7 +24,7 @@ import {
 } from '../components/icons'
 import ImageUploader from '../components/ImageUploader'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -134,6 +135,117 @@ const LoginForm = ({ onLogin }) => {
         </form>
 
 
+      </div>
+    </section>
+  )
+}
+
+/* ──────────── Forced Password Change Form ──────────── */
+
+const ChangePasswordForm = ({ onComplete }) => {
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match')
+      return
+    }
+    if (newPassword === currentPassword) {
+      setError('New password must be different from current password')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await apiFetch('/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      setToken(res.token)
+      onComplete(res.user)
+    } catch (err) {
+      setError(err.message || 'Failed to change password')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <section className="section flex min-h-[80vh] items-center justify-center bg-cream">
+      <div className="w-full max-w-md rounded-xl bg-white p-10 shadow-lift">
+        <div className="flex items-center gap-3">
+          <span className="flex h-12 w-12 items-center justify-center rounded-md bg-amber-100 text-amber-600">
+            <KeyIcon className="h-6 w-6" />
+          </span>
+          <div>
+            <h1 className="font-serif text-2xl font-bold text-forest">Change Password</h1>
+            <p className="text-xs text-text/60">You must change your password before continuing</p>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-700">
+          For security, please change the default password before accessing the dashboard.
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          <div>
+            <label htmlFor="current-pw" className="mb-1.5 block text-sm font-semibold text-forest">
+              Current Password
+            </label>
+            <input
+              id="current-pw"
+              type="password"
+              required
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full rounded-md border border-cream bg-cream px-4 py-3 text-sm text-text outline-none transition-colors focus:border-bronze"
+            />
+          </div>
+          <div>
+            <label htmlFor="new-pw" className="mb-1.5 block text-sm font-semibold text-forest">
+              New Password
+            </label>
+            <input
+              id="new-pw"
+              type="password"
+              required
+              minLength={8}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              className="w-full rounded-md border border-cream bg-cream px-4 py-3 text-sm text-text outline-none transition-colors focus:border-bronze"
+            />
+          </div>
+          <div>
+            <label htmlFor="confirm-pw" className="mb-1.5 block text-sm font-semibold text-forest">
+              Confirm New Password
+            </label>
+            <input
+              id="confirm-pw"
+              type="password"
+              required
+              minLength={8}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-md border border-cream bg-cream px-4 py-3 text-sm text-text outline-none transition-colors focus:border-bronze"
+            />
+          </div>
+
+          {error && (
+            <p className="rounded-md bg-red-50 px-4 py-2.5 text-xs text-red-600">{error}</p>
+          )}
+
+          <button type="submit" disabled={loading} className="btn-forest w-full">
+            {loading ? 'Updating…' : 'Change Password & Continue'}
+          </button>
+        </form>
       </div>
     </section>
   )
@@ -862,6 +974,7 @@ const Admin = () => {
   const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [mustChangePassword, setMustChangePassword] = useState(false)
 
   useHead({
     title: 'Admin Dashboard',
@@ -908,7 +1021,20 @@ const Admin = () => {
   }
 
   const handleLogin = (userData) => {
+    if (userData.mustChangePassword) {
+      setUser(userData)
+      setMustChangePassword(true)
+      setLoading(false)
+      return
+    }
     setUser(userData)
+    setMustChangePassword(false)
+    fetchAll()
+  }
+
+  const handlePasswordChanged = (userData) => {
+    setUser(userData)
+    setMustChangePassword(false)
     fetchAll()
   }
 
@@ -932,6 +1058,8 @@ const Admin = () => {
   }
 
   if (!user) return <LoginForm onLogin={handleLogin} />
+
+  if (mustChangePassword) return <ChangePasswordForm onComplete={handlePasswordChanged} />
 
   return (
     <>

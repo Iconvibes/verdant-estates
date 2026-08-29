@@ -1,9 +1,9 @@
 import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import rateLimit from 'express-rate-limit'
 import 'dotenv/config'
-import { findUserByEmail, createUser } from '../data/bridge.js'
+import { findUserByEmail, createUser, updateUserPassword } from '../data/bridge.js'
 import { signToken, authenticate } from '../middleware/auth.js'
 
 const router = Router()
@@ -17,6 +17,17 @@ const validate = (req, res) => {
     return false
   }
   return true
+}
+
+/** Safe user object — never leaks password hash */
+function safeUser(u) {
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    mustChangePassword: u.mustChangePassword ?? false,
+  }
 }
 
 // Rate limit: 10 login attempts per 15 minutes per IP
@@ -39,10 +50,9 @@ router.post(
   async (req, res) => {
     if (!validate(req, res)) return
 
-    // Hash password with bcrypt
     const hashedPassword = await bcrypt.hash(req.body.password, SALT_ROUNDS)
 
-    const user = createUser({
+    const user = await createUser({
       name: req.body.name,
       email: req.body.email,
       password: hashedPassword,
@@ -51,11 +61,7 @@ router.post(
 
     const token = signToken({ userId: user.id, email: user.email, role: user.role })
 
-    // Generic response — don't reveal if email already exists
-    res.status(201).json({
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
-      token,
-    })
+    res.status(201).json({ user: safeUser(user), token })
   },
 )
 
@@ -71,18 +77,14 @@ router.post(
     if (!validate(req, res)) return
 
     const user = await findUserByEmail(req.body.email)
-    
-    // Compare password with bcrypt
+
     if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
       return res.status(401).json({ error: 'Invalid email or password' })
     }
 
     const token = signToken({ userId: user.id, email: user.email, role: user.role })
 
-    res.json({
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
-      token,
-    })
+    res.json({ user: safeUser(user), token })
   },
 )
 
@@ -92,7 +94,48 @@ router.get('/me', authenticate, async (req, res) => {
   if (!user) {
     return res.status(404).json({ error: 'User not found' })
   }
-  res.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } })
+  res.json({ user: safeUser(user) })
 })
+
+// POST /api/auth/change-password — requires current password
+router.post(
+  '/change-password',
+  authenticate,
+  [
+    body('currentPassword').notEmpty().withMessage('Current password is required'),
+    body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters'),
+  ],
+  async (req, res) => {
+    if (!validate(req, res)) return
+
+    const user = await findUserByEmail(req.user.email)
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    // Verify current password
+    const valid = await bcrypt.compare(req.body.currentPassword, user.password)
+    if (!valid) {
+      return res.status(401).json({ error: 'Current password is incorrect' })
+    }
+
+    // Prevent reusing the same password
+    const sameAsCurrent = await bcrypt.compare(req.body.newPassword, user.password)
+    if (sameAsCurrent) {
+      return res.status(400).json({ error: 'New password must be different from current password' })
+    }
+
+    const hashedPassword = await bcrypt.hash(req.body.newPassword, SALT_ROUNDS)
+    const updated = await updateUserPassword(user.id, hashedPassword)
+
+    const token = signToken({ userId: updated.id, email: updated.email, role: updated.role })
+
+    res.json({
+      user: safeUser(updated),
+      token,
+      message: 'Password changed successfully',
+    })
+  },
+)
 
 export default router

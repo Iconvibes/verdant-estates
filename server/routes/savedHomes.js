@@ -26,7 +26,7 @@ router.get('/', async (req, res) => {
     if (listing) listings.push(listing)
   }
 
-  res.json({ savedIds: propertyIds, listings })
+  res.json({ savedIds: propertyIds, listings: listings.filter(Boolean) })
 })
 
 // POST /api/saved/toggle — toggle a property in/out of saved list
