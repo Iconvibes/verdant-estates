@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import ScrollHouseTour from '../components/ScrollHouseTour'
 import PropertyCard from '../components/PropertyCard'
@@ -42,8 +43,18 @@ const values = [
 ]
 
 const Home = () => {
-  const featured = getAllProperties().slice(0, 3)
+  const [featured, setFeatured] = useState([])
   const heroFrameUrl = useFrameUrl(0)
+
+  useEffect(() => {
+    const result = getAllProperties()
+    // Handle both sync (static adapter) and async (API adapter) returns
+    if (result && typeof result.then === 'function') {
+      result.then((data) => setFeatured(Array.isArray(data) ? data.slice(0, 3) : [])).catch(() => setFeatured([]))
+    } else if (Array.isArray(result)) {
+      setFeatured(result.slice(0, 3))
+    }
+  }, [])
 
   useHead({
     title: 'Sustainable Luxury Homes in Lagos',
@@ -64,7 +75,7 @@ const Home = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-forest-deep/70 via-forest/40 to-cream" aria-hidden="true" />
 
-        <div className="container-x relative py-24">
+        <div className="container-x relative py-16 md:py-20">
           <p className="eyebrow">Sustainable Luxury Living · Lagos</p>
           <h1 className="mt-5 max-w-3xl font-serif text-4xl font-bold leading-tight text-cream sm:text-5xl md:text-6xl">
             Homes Where Nature and <span className="text-bronze">Luxury</span> Meet
@@ -167,25 +178,25 @@ const Home = () => {
 
       {/* CTA BANNER */}
       <SEO data={organisationSchema()} />
-      <section className="relative overflow-hidden bg-forest py-20 md:py-24">
-        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-bronze/10" aria-hidden="true" />
-        <div className="absolute -bottom-24 -left-16 h-80 w-80 rounded-full bg-cream/5" aria-hidden="true" />
+      <section className="section bg-white">
         <div className="container-x relative text-center">
-          <p className="eyebrow">Private Viewings</p>
-          <h2 className="mx-auto mt-4 max-w-2xl font-serif text-3xl font-bold text-cream md:text-4xl">
-            Come See It for Yourself
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-cream/75">
-            Book a guided walkthrough of any listing — or tell us what you&rsquo;re looking for and
-            we&rsquo;ll match you to the right home.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <Link to="/contact" className="btn-bronze">
-              Book a Tour
-            </Link>
-            <Link to="/listings" className="btn-outline-cream">
-              Explore Listings
-            </Link>
+          <div className="mx-auto max-w-2xl rounded-2xl border border-cream bg-white px-8 py-10 shadow-soft md:px-16 md:py-14">
+            <p className="eyebrow">Private Viewings</p>
+            <h2 className="mx-auto mt-4 max-w-2xl font-serif text-3xl font-bold text-forest-deep md:text-4xl">
+              Come See It for Yourself
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-text/70">
+              Book a guided walkthrough of any listing — or tell us what you&rsquo;re looking for and
+              we&rsquo;ll match you to the right home.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
+              <Link to="/contact" className="btn-bronze">
+                Book a Tour
+              </Link>
+              <Link to="/listings" className="btn-outline-forest">
+                Explore Listings
+              </Link>
+            </div>
           </div>
         </div>
       </section>

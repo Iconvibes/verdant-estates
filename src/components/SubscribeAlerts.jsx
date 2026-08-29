@@ -86,7 +86,7 @@ const SubscribeAlerts = ({ variant = 'inline', defaultType = 'All', defaultPrice
 
   if (variant === 'banner') {
     return (
-      <section className="relative overflow-hidden bg-forest py-16 md:py-20">
+      <section className="relative overflow-hidden bg-forest py-12 md:py-16">
         <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-bronze/10" aria-hidden="true" />
         <div className="absolute -bottom-20 -left-16 h-72 w-72 rounded-full bg-cream/5" aria-hidden="true" />
         <div className="container-x relative">

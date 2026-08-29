@@ -74,6 +74,15 @@ export function useFrameUrl(index) {
 
 export const TOTAL_FRAMES = sortedKeys.length
 
+/**
+ * Returns a Promise that resolves to the URL for the given frame index.
+ * Resolves immediately if the frame is already cached.
+ */
+export function waitForFrame(index) {
+  if (urlCache[index]) return Promise.resolve(urlCache[index])
+  return ensureFrame(index)
+}
+
 // Kick off imports for the first 10 frames at module load time.
 // This doesn't block — the Promises resolve in the background and
 // populate urlCache so subsequent getFrameUrl calls return instantly.

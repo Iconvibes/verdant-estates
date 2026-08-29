@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { getPropertyById } from '../data'
 import { useCurrency } from '../context/CurrencyContext'
 
-const WHATSAPP_PHONE = '2348000000000' // update to the real business number
+const WHATSAPP_PHONE = '2349137360986'
 
 const WhatsAppIcon = (props) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>

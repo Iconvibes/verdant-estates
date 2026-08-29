@@ -82,7 +82,7 @@
   }
 
   .section {
-    @apply py-20 md:py-28;
+    @apply py-12 md:py-16;
   }
 
   .container-x {
