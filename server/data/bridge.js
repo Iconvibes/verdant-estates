@@ -17,8 +17,14 @@ import * as jsonDb from './db.js'
 let db
 
 if (process.env.SUPABASE_URL) {
-  console.log('Using Supabase database backend')
-  db = await import('../supabase/db.js')
+  try {
+    console.log('Using Supabase database backend')
+    db = await import('../supabase/db.js')
+  } catch (err) {
+    console.error('⚠️  Supabase backend failed to load:', err.message)
+    console.error('   Falling back to in-memory store. Ensure @supabase/supabase-js is installed\n   and both SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.')
+    db = jsonDb
+  }
 } else {
   console.log('Using JSON file database backend (development mode)')
   db = jsonDb
