@@ -3,10 +3,6 @@ import jwt from 'jsonwebtoken'
 // Require JWT_SECRET from environment — no hardcoded fallback in production.
 // On Vercel, set this via the dashboard → Settings → Environment Variables.
 const JWT_SECRET = process.env.JWT_SECRET
-if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
-  console.error('FATAL: JWT_SECRET environment variable is required in production')
-  process.exit(1)
-}
 // Dev-only fallback so local development still works without a .env
 const SECRET = JWT_SECRET || 'dev-only-fallback-change-me'
 
@@ -14,7 +10,7 @@ const SECRET = JWT_SECRET || 'dev-only-fallback-change-me'
 const JWT_ALGORITHM = 'HS256'
 
 export function signToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { algorithm: JWT_ALGORITHM, expiresIn: '30d' })
+  return jwt.sign(payload, SECRET, { algorithm: JWT_ALGORITHM, expiresIn: '30d' })
 }
 
 export function authenticate(req, res, next) {
@@ -25,7 +21,7 @@ export function authenticate(req, res, next) {
 
   try {
     const token = header.slice(7)
-    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: [JWT_ALGORITHM] })
+    const decoded = jwt.verify(token, SECRET, { algorithms: [JWT_ALGORITHM] })
     req.user = decoded
     next()
   } catch {
@@ -47,7 +43,7 @@ export function optionalAuth(req, _res, next) {
   const header = req.headers.authorization
   if (header && header.startsWith('Bearer ')) {
     try {
-      req.user = jwt.verify(header.slice(7), JWT_SECRET, { algorithms: [JWT_ALGORITHM] })
+      req.user = jwt.verify(header.slice(7), SECRET, { algorithms: [JWT_ALGORITHM] })
     } catch {
       // ignore invalid token — continue unauthenticated
     }

@@ -21,8 +21,23 @@ async function request(path, options = {}) {
     headers.Authorization = `Bearer ${authToken}`
   }
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
-  const data = await res.json()
+  let res
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+  } catch (networkErr) {
+    const error = new Error('Unable to connect to authentication service. Please try again later.')
+    error.status = 0
+    throw error
+  }
+
+  let data
+  try {
+    data = await res.json()
+  } catch {
+    const error = new Error('Unable to connect to authentication service. Please try again later.')
+    error.status = res.status
+    throw error
+  }
 
   if (!res.ok) {
     const error = new Error(data.error || data.errors?.[0]?.msg || 'Request failed')

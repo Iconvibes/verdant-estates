@@ -26,12 +26,16 @@ const PORT = process.env.PORT && process.env.PORT !== '0' ? process.env.PORT : 3
 
 // --- Security & parsing ---
 app.use(helmet())
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://verdant-estates-alpha.vercel.app',
+]
+if (process.env.CORS_ORIGIN) {
+  ALLOWED_ORIGINS.push(process.env.CORS_ORIGIN)
+}
 app.use(cors({
-  origin: [
-    process.env.CORS_ORIGIN || 'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:5173',
-  ],
+  origin: ALLOWED_ORIGINS,
   credentials: true,
 }))
 app.use(express.json({ limit: '1mb' }))

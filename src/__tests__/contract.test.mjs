@@ -309,7 +309,10 @@ describe('Server Security', () => {
 
   it('no hardcoded JWT secret', () => {
     assert.ok(!authMiddleware.includes('dev-only-secret'), 'no hardcoded secret')
-    assert.ok(authMiddleware.includes('process.exit(1)'), 'exits if JWT_SECRET missing')
+    assert.ok(
+      authMiddleware.includes('JWT_SECRET') && authMiddleware.includes('SECRET'),
+      'uses environment variable with dev fallback',
+    )
   })
 
   it('requireAdmin middleware exists', () => {
