@@ -3,12 +3,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install --include=dev",
-  "framework": null,
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "server/**"
-    }
-  },
   "rewrites": [
     {
       "source": "/((?!assets/|api/).*)",
