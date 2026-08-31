@@ -4,16 +4,18 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --config vite.config.deploy.js",
+    "dev": "vite",
     "dev:server": "cd server && npm run dev",
     "dev:all": "npx concurrently -n client,server -c blue,green \"npm run dev\" \"cd server && npm run dev\"",
-    "build": "npx vite build --config vite.config.deploy.js",
+    "build": "npx vite build",
     "test": "node --test src/__tests__/contract.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
-    "seed": "cd server && npm run seed"
+    "seed": "cd server && npm run seed",
+    "start:server": "cd server && node index.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.4",
     "@upstash/redis": "^1.38.3",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",

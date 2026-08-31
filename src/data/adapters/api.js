@@ -3,13 +3,13 @@
  * Used for production mode with persistent data.
  */
 import { fetchListings, fetchListingById } from '../../api.js'
+import { supabase } from '../../lib/supabase'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-async function apiFetch(path) {
-  const res = await fetch(`${API_BASE}${path}`)
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
-  return res.json()
+async function getPropertyTypesFromDb() {
+  const { data, error } = await supabase.from('listings').select('type')
+  if (error) return ['All']
+  const types = [...new Set((data || []).map((r) => r.type))]
+  return ['All', ...types.sort()]
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -38,8 +38,7 @@ async function getPropertyById(id) {
 }
 
 async function getPropertyTypes() {
-  const data = await apiFetch('/listings/types')
-  return data.types || ['All']
+  return getPropertyTypesFromDb()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

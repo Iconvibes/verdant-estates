@@ -72,12 +72,10 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' })
 })
 
-// Only listen when running directly (not on Vercel serverless)
-if (!process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`🌿 Verdant Estates API running on http://localhost:${PORT}`)
-    console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`)
-  })
-}
+// Listen on all interfaces for cloud hosting (Render, Railway, Fly.io)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🌿 Verdant Estates API running on http://0.0.0.0:${PORT}`)
+  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`)
+})
 
 export default app

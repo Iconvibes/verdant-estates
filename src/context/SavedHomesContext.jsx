@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { fetchSavedHomes, toggleSavedHome, clearSavedHomes as apiClearSaved, getToken } from '../api'
+import { supabase } from '../lib/supabase'
 
 const STORAGE_KEY = 'verdant.savedHomes'
 
@@ -25,13 +26,14 @@ export const SavedHomesProvider = ({ children }) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(savedIds))
   }, [savedIds])
 
-  // When a token becomes available, sync with the server
+  // When a Supabase session becomes available, sync with the server
   useEffect(() => {
-    const token = getToken()
-    if (!token) return
-
     let cancelled = false
-    ;(async () => {
+
+    const syncWithServer = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session || cancelled) return
+
       setSyncing(true)
       try {
         const data = await fetchSavedHomes()
@@ -43,8 +45,9 @@ export const SavedHomesProvider = ({ children }) => {
       } finally {
         if (!cancelled) setSyncing(false)
       }
-    })()
+    }
 
+    syncWithServer()
     return () => { cancelled = true }
   }, []) // run once on mount
 
@@ -57,15 +60,16 @@ export const SavedHomesProvider = ({ children }) => {
     )
 
     // Sync with server if authenticated
-    if (getToken()) {
-      try {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
         const data = await toggleSavedHome(numericId)
         if (data.savedIds) {
           setSavedIds(data.savedIds)
         }
-      } catch {
-        // Revert on failure — the optimistic update stays for now
       }
+    } catch {
+      // Revert on failure — the optimistic update stays for now
     }
   }, [])
 
@@ -73,12 +77,13 @@ export const SavedHomesProvider = ({ children }) => {
 
   const clearSaved = useCallback(async () => {
     setSavedIds([])
-    if (getToken()) {
-      try {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
         await apiClearSaved()
-      } catch {
-        // ignore
       }
+    } catch {
+      // ignore
     }
   }, [])
 

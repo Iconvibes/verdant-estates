@@ -4,7 +4,17 @@ import {
   login,
   setToken,
   getToken,
+  fetchCurrentUser as apiFetchCurrentUser,
+  fetchListings,
+  fetchEnquiries,
+  fetchAlerts,
+  changePassword,
+  deleteListing,
+  createListing,
+  updateListing,
+  updateEnquiryStatus,
 } from '../api'
+import { supabase } from '../lib/supabase'
 import { KeyIcon } from '../components/icons'
 import useHead from '../hooks/useHead'
 import { formatPrice } from '../data'
@@ -23,8 +33,6 @@ import {
   TrashIcon,
 } from '../components/icons'
 import ImageUploader from '../components/ImageUploader'
-
-const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -45,28 +53,35 @@ const STATUS_OPTIONS = ['new', 'contacted', 'resolved', 'archived']
 /* ──────────── API helpers ──────────── */
 
 async function apiFetch(path, opts = {}) {
-  const token = getToken()
-  const headers = { 'Content-Type': 'application/json', ...opts.headers }
-  if (token) headers.Authorization = `Bearer ${token}`
-  let res
+  const { method = 'GET', body } = opts
+  const segments = path.replace(/^\//, '').split('/')
+
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...opts, headers })
-  } catch {
-    throw new Error('Unable to connect to authentication service. Please try again later.')
+    // Route to the right Supabase function based on path
+    if (segments[0] === 'listings') {
+      if (method === 'DELETE') return await deleteListing(segments[1])
+      if (method === 'POST') return await createListing(JSON.parse(body))
+      if (method === 'PUT') return await updateListing(segments[1], JSON.parse(body))
+      if (segments.length > 1 && method === 'GET') return await fetchListingById(segments[1])
+      return await fetchListings()
+    }
+    if (segments[0] === 'enquiries') {
+      if (method === 'PATCH') return await updateEnquiryStatus(segments[1], JSON.parse(body).status)
+      return await fetchEnquiries()
+    }
+    if (segments[0] === 'alerts') return await fetchAlerts()
+    if (segments[0] === 'auth' && segments[1] === 'me') return await apiFetchCurrentUser()
+    if (segments[0] === 'auth' && segments[1] === 'change-password') {
+      return await changePassword(JSON.parse(body))
+    }
+    throw new Error('Unknown API path: ' + path)
+  } catch (err) {
+    if (err.message?.includes('Not authenticated') || err.status === 401) {
+      setToken(null)
+      window.location.reload()
+    }
+    throw err
   }
-  if (res.status === 401) {
-    setToken(null)
-    window.location.reload()
-    throw new Error('Session expired')
-  }
-  let data
-  try {
-    data = await res.json()
-  } catch {
-    throw new Error('Unable to connect to authentication service. Please try again later.')
-  }
-  if (!res.ok) throw new Error(data.error || 'Request failed')
-  return data
 }
 
 /* ──────────── Login Form ──────────── */
@@ -1022,12 +1037,7 @@ const Admin = () => {
   }, [])
 
   const fetchCurrentUser = async () => {
-    const token = getToken()
-    const res = await fetch(`${API_BASE}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (!res.ok) throw new Error('Not authenticated')
-    return res.json()
+    return await apiFetchCurrentUser()
   }
 
   const handleLogin = (userData) => {
@@ -1048,7 +1058,8 @@ const Admin = () => {
     fetchAll()
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
     setToken(null)
     setUser(null)
     setListings([])
