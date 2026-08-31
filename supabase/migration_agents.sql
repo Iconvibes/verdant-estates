@@ -149,3 +149,10 @@ DROP POLICY IF EXISTS "Users can delete own agent photos" ON storage.objects;
 CREATE POLICY "Users can delete own agent photos"
   ON storage.objects FOR DELETE
   USING (bucket_id = 'agent-photos' AND auth.role() = 'authenticated');
+
+-- ═══════════════════════════════════════════════════════════════
+-- 9. Agent approval workflow
+-- ═══════════════════════════════════════════════════════════════
+
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS approved BOOLEAN DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_agents_approved ON agents(approved);

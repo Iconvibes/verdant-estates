@@ -62,9 +62,9 @@ const AgentDashboard = () => {
       setProfile(prof)
 
       const [listingsResult, enquiriesResult, metricsResult] = await Promise.all([
-        fetchAgentListings(prof.id),
-        fetchAgentEnquiries(prof.id),
-        getListingMetrics(prof.id),
+        fetchAgentListings(prof.userId),
+        fetchAgentEnquiries(prof.userId),
+        getListingMetrics(prof.userId),
       ])
       setListings(listingsResult.listings || [])
       setEnquiries(enquiriesResult.enquiries || [])
@@ -127,16 +127,16 @@ const AgentDashboard = () => {
         agent: { name: profile.name, email: profile.email, phone: profile.phone || '', role: profile.role || 'Sales Partner' },
       }
       if (editingId) {
-        await updateListingForAgent(editingId, data, profile.id)
+        await updateListingForAgent(editingId, data, profile.userId)
         setMessage({ type: 'success', text: 'Listing updated and resubmitted for review.' })
       } else {
-        await createListingForAgent(data, profile.id)
+        await createListingForAgent(data, profile.userId)
         setMessage({ type: 'success', text: 'Listing submitted for admin review. It will appear on the site once approved.' })
       }
       setEditingId(null)
       setForm(emptyListing)
       setTab('listings')
-      const result = await fetchAgentListings(profile.id)
+      const result = await fetchAgentListings(profile.userId)
       setListings(result.listings || [])
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Failed to save listing.' })
@@ -148,7 +148,7 @@ const AgentDashboard = () => {
   const handleDelete = async (id) => {
     if (!profile || !window.confirm('Are you sure you want to delete this listing?')) return
     try {
-      await deleteListingForAgent(id, profile.id)
+      await deleteListingForAgent(id, profile.userId)
       setListings((prev) => prev.filter((l) => l.id !== id))
     } catch {
       // ignore

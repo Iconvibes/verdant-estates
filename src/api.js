@@ -57,15 +57,22 @@ export async function login({ email, password }) {
   // Check if user is an agent by looking up agents table
   const { data: agentRow } = await supabase
     .from('agents')
-    .select('id, full_name, photo_url')
+    .select('id, full_name, photo_url, approved')
     .eq('user_id', user.id)
     .maybeSingle()
 
-  // Determine role — only admin_users table or agents table grant access
+  // Determine role
   const role = adminRow ? 'admin' : agentRow ? 'agent' : null
+
   if (!role) {
     setToken(null)
     throw new Error('This account is not authorized. Contact the administrator.')
+  }
+
+  // Agents must be approved by admin before they can log in
+  if (role === 'agent' && agentRow && !agentRow.approved) {
+    setToken(null)
+    throw new Error('Your account is pending admin approval. You will be able to log in once approved.')
   }
 
   return {
@@ -526,6 +533,49 @@ export async function rejectListing(id) {
   const { error } = await supabase
     .from('listings')
     .update({ status: 'rejected', updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+  return { success: true }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Admin: Agent Approval
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function fetchPendingAgents() {
+  const { data, error } = await supabase
+    .from('agents')
+    .select('*')
+    .eq('approved', false)
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return {
+    agents: (data || []).map((a) => ({
+      id: a.id,
+      userId: a.user_id,
+      name: a.full_name || a.name,
+      email: a.email,
+      phone: a.phone,
+      photo: a.photo_url || a.photo || null,
+      bio: a.bio,
+      createdAt: a.created_at,
+    })),
+  }
+}
+
+export async function approveAgent(id) {
+  const { error } = await supabase
+    .from('agents')
+    .update({ approved: true })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+  return { success: true }
+}
+
+export async function rejectAgent(id) {
+  const { error } = await supabase
+    .from('agents')
+    .delete()
     .eq('id', id)
   if (error) throw new Error(error.message)
   return { success: true }

@@ -47,7 +47,12 @@ const AgentRegister = () => {
       setSuccess(result.message)
       setTimeout(() => navigate('/agent/login'), 3000)
     } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.')
+      const msg = err.message || 'Registration failed.'
+      if (msg.includes('invalid')) {
+        setError('Registration failed. Please check your email address and try again.')
+      } else {
+        setError(msg)
+      }
     } finally {
       setLoading(false)
       setUploading(false)
