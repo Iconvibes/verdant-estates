@@ -216,6 +216,7 @@ export async function submitEnquiry(data) {
     interest: data.interest || data.message?.slice(0, 50) || 'General',
     message: data.message || '',
     property_id: data.propertyId || null,
+    property_name: data.listingName || null,
   })
   if (error) throw new Error(error.message)
   return { success: true }
@@ -233,6 +234,7 @@ export async function fetchEnquiries() {
       interest: e.interest,
       message: e.message,
       propertyId: e.property_id,
+      propertyName: e.property_name || null,
       status: e.status,
       createdAt: e.created_at,
     })),

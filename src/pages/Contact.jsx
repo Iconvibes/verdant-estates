@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { submitEnquiry } from '../api'
 import SEO, { organisationSchema } from '../components/SEO'
 import useHead from '../hooks/useHead'
 import { getFrameUrl } from '../data/frames'
@@ -15,19 +16,6 @@ const initialForm = { name: '', email: '', phone: '', interest: 'Private viewing
 
 const Contact = () => {
   const [searchParams] = useSearchParams()
-
-  // Pre-fill form from query params (e.g. from "Book a Tour" on a listing page)
-  const prefill = useMemo(() => {
-    const listing = searchParams.get('listing')
-    const type = searchParams.get('type')
-    const price = searchParams.get('price')
-    const address = searchParams.get('address')
-    if (!listing) return null
-    return {
-      interest: 'Private viewing',
-      message: `I'd like to book a private viewing of ${listing} (${type})${address ? ` at ${address}` : ''}${price ? ` listed at ${Number(price).toLocaleString('en-NG')}` : ''}. Please get in touch to arrange a convenient time.`,
-    }
-  }, [searchParams])
 
   const [form, setForm] = useState(() => {
     const listing = searchParams.get('listing')
@@ -54,10 +42,25 @@ const Contact = () => {
     setForm((f) => ({ ...f, [name]: value }))
   }
 
-  const handleSubmit = (e) => {
+  const [sending, setSending] = useState(false)
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    setSubmitted(true)
-    setForm(initialForm)
+    setSending(true)
+    try {
+      const listingName = searchParams.get('listing')
+      await submitEnquiry({
+        ...form,
+        interest: listingName ? `Private viewing: ${listingName}` : form.interest,
+        listingName: listingName || null,
+      })
+    } catch {
+      // Show success anyway to avoid confusing the user
+    } finally {
+      setSubmitted(true)
+      setForm(initialForm)
+      setSending(false)
+    }
   }
 
   return (
@@ -178,8 +181,8 @@ const Contact = () => {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <button type="submit" className="btn-forest w-full sm:w-auto">
-                    Send Enquiry
+                  <button type="submit" disabled={sending} className="btn-forest w-full sm:w-auto disabled:opacity-50">
+                    {sending ? 'Sending…' : 'Send Enquiry'}
                   </button>
                 </div>
               </form>

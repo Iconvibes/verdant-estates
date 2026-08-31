@@ -9,7 +9,7 @@ import Testimonials from '../components/Testimonials'
 import SEO, { organisationSchema } from '../components/SEO'
 import useHead from '../hooks/useHead'
 import { getAllProperties } from '../data'
-import { getFrameUrl, useFrameUrl } from '../data/frames'
+import heroBg from '../assets/hero/hero-bg.jpg'
 import { ArrowRightIcon, KeyIcon, LeafIcon, ShieldIcon, SunIcon } from '../components/icons'
 
 const stats = [
@@ -44,7 +44,7 @@ const values = [
 
 const Home = () => {
   const [featured, setFeatured] = useState([])
-  const heroFrameUrl = useFrameUrl(0)
+
 
   useEffect(() => {
     const result = getAllProperties()
@@ -59,7 +59,7 @@ const Home = () => {
   useHead({
     title: 'Sustainable Luxury Homes in Lagos',
     description: "Verdant Estates curates Lagos's most serene addresses — light-filled modern homes wrapped in greenery, from Ikoyi to Banana Island. Browse 12 exclusive listings.",
-    image: getFrameUrl(0) || heroFrameUrl,
+    image: heroBg,
     url: 'https://verdantestates.ng',
   })
 
@@ -68,7 +68,7 @@ const Home = () => {
       {/* HERO */}
       <section className="relative flex min-h-[88vh] items-center overflow-hidden bg-forest-deep">
         <img
-          src={heroFrameUrl}
+          src={heroBg}
           alt="A modern luxury home surrounded by lush greenery, showcasing the Verdant Estates design philosophy"
           className="absolute inset-0 h-full w-full object-cover opacity-40"
           aria-hidden="true"
