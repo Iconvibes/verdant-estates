@@ -10,8 +10,11 @@ import {
   fetchAlerts,
   fetchPendingListings,
   fetchAgents,
+  fetchPendingAgents,
   approveListing,
   rejectListing,
+  approveAgent,
+  rejectAgent,
   changePassword,
   deleteListing,
   createListing,
@@ -40,7 +43,8 @@ import ImageUploader from '../components/ImageUploader'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard' },
-  { id: 'pending', label: 'Pending Approvals' },
+  { id: 'pending', label: 'Pending Listings' },
+  { id: 'pending-agents', label: 'Pending Agents' },
   { id: 'listings', label: 'Listings' },
   { id: 'enquiries', label: 'Enquiries' },
   { id: 'alerts', label: 'Alerts' },
@@ -1003,20 +1007,61 @@ const PendingTab = ({ pending, onApprove, onReject }) => {
   if (pending.length === 0) return <div className="rounded-xl bg-white p-12 text-center shadow-soft"><p className="text-text/50">No pending listings to review.</p></div>
   return (
     <div className="grid gap-4">
-      {pending.map((l) => (
-        <div key={l.id} className="flex items-center gap-4 rounded-xl bg-white p-4 shadow-soft sm:p-5">
-          <div className="h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-cream">
-            {l.image ? <img src={l.image} alt={l.name} className="h-full w-full object-cover" /> : null}
+      {pending.map((l) => {
+        const photos = l.images && l.images.length > 0 ? l.images : (l.image ? [l.image] : [])
+        return (
+        <div key={l.id} className="rounded-xl bg-white p-4 shadow-soft sm:p-5">
+          {/* Photo gallery */}
+          {photos.length > 0 && (
+            <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
+              {photos.map((src, i) => (
+                <div key={i} className="relative h-32 w-40 shrink-0 overflow-hidden rounded-lg bg-cream">
+                  <img src={src} alt={`${l.name} ${i + 1}`} className="h-full w-full object-cover" />
+                  {i === 0 && <span className="absolute bottom-1 left-1 rounded bg-black/50 px-1.5 py-0.5 text-[0.55rem] font-semibold text-white">Main</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 min-w-0">
+              <h3 className="truncate font-serif font-bold text-forest">{l.name}</h3>
+              <p className="mt-0.5 text-xs text-text/50">{l.type} &middot; {l.address}</p>
+              <p className="mt-1 font-serif text-sm font-bold text-bronze">{formatPrice(l.price)}</p>
+              {l.description && <p className="mt-2 text-xs text-text/50 line-clamp-2">{l.description}</p>}
+              <p className="mt-1 text-xs text-text/40">Submitted {new Date(l.createdAt).toLocaleDateString()}</p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button onClick={() => onApprove(l.id)} className="rounded-md bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-200">Approve</button>
+              <button onClick={() => onReject(l.id)} className="rounded-md bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200">Reject</button>
+            </div>
           </div>
+        </div>
+        )
+      })}
+    </div>
+  )
+}
+
+const PendingAgentsTab = ({ agents, onApprove, onReject }) => {
+  if (agents.length === 0) return <div className="rounded-xl bg-white p-12 text-center shadow-soft"><p className="text-text/50">No pending agent registrations.</p></div>
+  return (
+    <div className="grid gap-4">
+      {agents.map((a) => (
+        <div key={a.id} className="flex items-center gap-4 rounded-xl bg-white p-4 shadow-soft sm:p-5">
+          {a.photo ? (
+            <img src={a.photo} alt={a.name} className="h-14 w-14 shrink-0 rounded-full object-cover" />
+          ) : (
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-forest/10 font-serif text-lg font-bold text-forest">{a.name?.split(' ').map((n) => n[0]).join('')}</span>
+          )}
           <div className="flex-1 min-w-0">
-            <h3 className="truncate font-serif font-bold text-forest">{l.name}</h3>
-            <p className="mt-0.5 text-xs text-text/50">{l.type} &middot; {l.address}</p>
-            <p className="mt-1 font-serif text-sm font-bold text-bronze">{formatPrice(l.price)}</p>
-            <p className="mt-0.5 text-xs text-text/40">Submitted {new Date(l.createdAt).toLocaleDateString()}</p>
+            <h3 className="truncate font-serif font-bold text-forest">{a.name}</h3>
+            <p className="mt-0.5 text-xs text-text/50">{a.email}</p>
+            {a.phone && <p className="mt-0.5 text-xs text-text/40">{a.phone}</p>}
+            <p className="mt-0.5 text-xs text-text/40">Registered {new Date(a.createdAt).toLocaleDateString()}</p>
           </div>
           <div className="flex shrink-0 gap-2">
-            <button onClick={() => onApprove(l.id)} className="rounded-md bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-200">Approve</button>
-            <button onClick={() => onReject(l.id)} className="rounded-md bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200">Reject</button>
+            <button onClick={() => onApprove(a.id)} className="rounded-md bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-200">Approve</button>
+            <button onClick={() => onReject(a.id)} className="rounded-md bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200">Reject</button>
           </div>
         </div>
       ))}
@@ -1032,6 +1077,7 @@ const Admin = () => {
   const [alerts, setAlerts] = useState([])
   const [pendingListings, setPendingListings] = useState([])
   const [agents, setAgents] = useState([])
+  const [pendingAgents, setPendingAgents] = useState([])
   const [notifOpen, setNotifOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -1045,18 +1091,20 @@ const Admin = () => {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [listingsRes, enquiriesRes, alertsRes, pendingRes, agentsRes] = await Promise.allSettled([
+      const [listingsRes, enquiriesRes, alertsRes, pendingRes, agentsRes, pendingAgentsRes] = await Promise.allSettled([
         fetchListings(),
         fetchEnquiries(),
         fetchAlerts(),
         fetchPendingListings(),
         fetchAgents(),
+        fetchPendingAgents(),
       ])
       setListings(listingsRes.status === 'fulfilled' ? (listingsRes.value?.listings || []) : [])
       setEnquiries(enquiriesRes.status === 'fulfilled' ? (enquiriesRes.value?.enquiries || []) : [])
       setAlerts(alertsRes.status === 'fulfilled' ? (alertsRes.value?.alerts || []) : [])
       setPendingListings(pendingRes.status === 'fulfilled' ? (pendingRes.value?.listings || []) : [])
       setAgents(agentsRes.status === 'fulfilled' ? (agentsRes.value?.agents || []) : [])
+      setPendingAgents(pendingAgentsRes.status === 'fulfilled' ? (pendingAgentsRes.value?.agents || []) : [])
     } catch {
       // handled by individual calls
     } finally {
@@ -1179,6 +1227,11 @@ const Admin = () => {
                       {pendingListings.length}
                     </span>
                   )}
+                  {tab.id === 'pending-agents' && pendingAgents.length > 0 && (
+                    <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[0.6rem] font-bold text-white">
+                      {pendingAgents.length}
+                    </span>
+                  )}
                   {tab.id === 'enquiries' && enquiries.length > 0 && (
                     <span className="ml-auto rounded-full bg-bronze px-2 py-0.5 text-[0.6rem] font-bold text-forest-deep">
                       {enquiries.filter((e) => e.status === 'new').length || enquiries.length}
@@ -1226,9 +1279,9 @@ const Admin = () => {
                   aria-label="Notifications"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
-                  {(pendingListings.length > 0 || agents.length > 0) && (
+                  {(pendingListings.length > 0 || pendingAgents.length > 0) && (
                     <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[0.55rem] font-bold text-white">
-                      {pendingListings.length + agents.length}
+                      {pendingListings.length + pendingAgents.length}
                     </span>
                   )}
                 </button>
@@ -1242,7 +1295,7 @@ const Admin = () => {
                         <h3 className="font-serif text-sm font-bold text-forest">Notifications</h3>
                       </div>
                       <div className="max-h-80 overflow-y-auto">
-                        {pendingListings.length === 0 && agents.length === 0 ? (
+                        {pendingListings.length === 0 && pendingAgents.length === 0 ? (
                           <p className="px-4 py-6 text-center text-xs text-text/40">No new notifications</p>
                         ) : (
                           <>
@@ -1268,13 +1321,17 @@ const Admin = () => {
                                 ))}
                               </div>
                             )}
-                            {agents.length > 0 && (
+                            {pendingAgents.length > 0 && (
                               <div>
                                 <div className="bg-blue-50 px-4 py-2">
-                                  <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-blue-700">Registered Agents ({agents.length})</p>
+                                  <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-blue-700">Pending Agents ({pendingAgents.length})</p>
                                 </div>
-                                {agents.slice(0, 5).map((a) => (
-                                  <div key={a.id} className="flex items-center gap-3 border-b border-cream/50 px-4 py-3">
+                                {pendingAgents.slice(0, 5).map((a) => (
+                                  <button
+                                    key={a.id}
+                                    onClick={() => { setActiveTab('pending-agents'); setNotifOpen(false) }}
+                                    className="flex w-full items-center gap-3 border-b border-cream/50 px-4 py-3 text-left hover:bg-cream/50 transition-colors"
+                                  >
                                     {a.photo ? (
                                       <img src={a.photo} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
                                     ) : (
@@ -1282,9 +1339,9 @@ const Admin = () => {
                                     )}
                                     <div className="min-w-0 flex-1">
                                       <p className="truncate text-xs font-semibold text-forest">{a.name}</p>
-                                      <p className="text-[0.65rem] text-text/40">{a.email}</p>
+                                      <p className="text-[0.65rem] text-text/40">Awaiting approval</p>
                                     </div>
-                                  </div>
+                                  </button>
                                 ))}
                               </div>
                             )}
@@ -1318,6 +1375,13 @@ const Admin = () => {
                 pending={pendingListings}
                 onApprove={async (id) => { await approveListing(id); fetchAll() }}
                 onReject={async (id) => { await rejectListing(id); fetchAll() }}
+              />
+            )}
+            {activeTab === 'pending-agents' && (
+              <PendingAgentsTab
+                agents={pendingAgents}
+                onApprove={async (id) => { await approveAgent(id); fetchAll() }}
+                onReject={async (id) => { await rejectAgent(id); fetchAll() }}
               />
             )}
             {activeTab === 'alerts' && <AlertsTab alerts={alerts} />}

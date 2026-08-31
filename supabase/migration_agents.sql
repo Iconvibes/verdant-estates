@@ -156,3 +156,26 @@ CREATE POLICY "Users can delete own agent photos"
 
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS approved BOOLEAN DEFAULT false;
 CREATE INDEX IF NOT EXISTS idx_agents_approved ON agents(approved);
+
+-- ═══════════════════════════════════════════════════════════════
+-- 10. Supabase Storage bucket for listing photos
+-- ═══════════════════════════════════════════════════════════════
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('listing-photos', 'listing-photos', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp'])
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Listing photos are publicly readable" ON storage.objects;
+CREATE POLICY "Listing photos are publicly readable"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'listing-photos');
+
+DROP POLICY IF EXISTS "Authenticated users can upload listing photos" ON storage.objects;
+CREATE POLICY "Authenticated users can upload listing photos"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'listing-photos' AND auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can delete listing photos" ON storage.objects;
+CREATE POLICY "Authenticated users can delete listing photos"
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'listing-photos' AND auth.role() = 'authenticated');

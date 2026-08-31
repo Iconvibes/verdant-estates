@@ -36,6 +36,17 @@ export async function uploadAgentPhoto(file) {
   return urlData.publicUrl
 }
 
+export async function uploadListingPhoto(file) {
+  const ext = file.name.split('.').pop()
+  const path = `listing-photos/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const { error } = await supabase.storage
+    .from('listing-photos')
+    .upload(path, file, { contentType: file.type, upsert: false })
+  if (error) throw new Error(error.message)
+  const { data: urlData } = supabase.storage.from('listing-photos').getPublicUrl(path)
+  return urlData.publicUrl
+}
+
 // ── Auth ────────────────────────────────────────────────────────────────────
 
 export async function login({ email, password }) {
@@ -57,7 +68,7 @@ export async function login({ email, password }) {
   // Check if user is an agent by looking up agents table
   const { data: agentRow } = await supabase
     .from('agents')
-    .select('id, full_name, photo_url, approved')
+    .select('*')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -70,7 +81,7 @@ export async function login({ email, password }) {
   }
 
   // Agents must be approved by admin before they can log in
-  if (role === 'agent' && agentRow && !agentRow.approved) {
+  if (role === 'agent' && agentRow && agentRow.approved === false) {
     setToken(null)
     throw new Error('Your account is pending admin approval. You will be able to log in once approved.')
   }

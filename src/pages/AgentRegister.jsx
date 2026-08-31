@@ -44,7 +44,7 @@ const AgentRegister = () => {
         setUploading(false)
       }
       const result = await registerAgent({ ...form, photoUrl })
-      setSuccess(result.message)
+      setSuccess('Account created! Your registration is pending admin approval. You will be able to log in once approved.')
       setTimeout(() => navigate('/agent/login'), 3000)
     } catch (err) {
       const msg = err.message || 'Registration failed.'

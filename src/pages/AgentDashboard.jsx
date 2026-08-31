@@ -8,6 +8,7 @@ import {
   deleteListingForAgent,
   fetchAgentEnquiries,
   getListingMetrics,
+  uploadListingPhoto,
   changePassword,
   updateEnquiryStatus,
   setToken,
@@ -44,6 +45,8 @@ const AgentDashboard = () => {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(emptyListing)
   const [saving, setSaving] = useState(false)
+  const [photoFiles, setPhotoFiles] = useState([])
+  const [photoPreviews, setPhotoPreviews] = useState([])
   const [message, setMessage] = useState({ type: '', text: '' })
 
   useHead({ title: 'Agent Dashboard | Verdant Estates', noIndex: true })
@@ -88,8 +91,27 @@ const AgentDashboard = () => {
     setForm((f) => ({ ...f, [name]: value }))
   }
 
+  const handlePhotoSelect = (e) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    const valid = files.filter((f) => f.size <= 10 * 1024 * 1024)
+    if (valid.length < files.length) {
+      setMessage({ type: 'error', text: 'Some files exceeded 10MB and were skipped.' })
+    }
+    setPhotoFiles((prev) => [...prev, ...valid])
+    setPhotoPreviews((prev) => [...prev, ...valid.map((f) => URL.createObjectURL(f))])
+    e.target.value = ''
+  }
+
+  const removePhoto = (index) => {
+    setPhotoFiles((prev) => prev.filter((_, i) => i !== index))
+    setPhotoPreviews((prev) => prev.filter((_, i) => i !== index))
+  }
+
   const startEdit = (listing) => {
     setEditingId(listing.id)
+    setPhotoFiles([])
+    setPhotoPreviews(listing.images || (listing.image ? [listing.image] : []))
     setForm({
       name: listing.name,
       type: listing.type,
@@ -116,8 +138,20 @@ const AgentDashboard = () => {
     setSaving(true)
     setMessage({ type: '', text: '' })
     try {
+      // Upload new photos to Supabase Storage
+      let uploadedUrls = [...(form.images || [])]
+      if (photoFiles.length > 0) {
+        setMessage({ type: 'info', text: `Uploading ${photoFiles.length} photo${photoFiles.length > 1 ? 's' : ''}…` })
+        for (const file of photoFiles) {
+          const url = await uploadListingPhoto(file)
+          uploadedUrls.push(url)
+        }
+      }
+
       const data = {
         ...form,
+        image: uploadedUrls[0] || form.image || '',
+        images: uploadedUrls,
         price: Number(form.price),
         beds: Number(form.beds),
         baths: Number(form.baths),
@@ -135,6 +169,8 @@ const AgentDashboard = () => {
       }
       setEditingId(null)
       setForm(emptyListing)
+      setPhotoFiles([])
+      setPhotoPreviews([])
       setTab('listings')
       const result = await fetchAgentListings(profile.userId)
       setListings(result.listings || [])
@@ -299,7 +335,25 @@ const AgentDashboard = () => {
               <div className="sm:col-span-2"><label className="mb-1.5 block text-sm font-semibold text-forest">Tagline</label><input name="tagline" value={form.tagline} onChange={handleChange} className="w-full rounded-md border border-cream bg-cream px-4 py-3 text-sm text-text outline-none focus:border-bronze" /></div>
               <div className="sm:col-span-2"><label className="mb-1.5 block text-sm font-semibold text-forest">Description *</label><textarea name="description" required rows="4" value={form.description} onChange={handleChange} className="w-full resize-y rounded-md border border-cream bg-cream px-4 py-3 text-sm text-text outline-none focus:border-bronze" /></div>
               <div className="sm:col-span-2"><label className="mb-1.5 block text-sm font-semibold text-forest">Features (one per line)</label><textarea name="features" rows="4" value={form.features} onChange={handleChange} className="w-full resize-y rounded-md border border-cream bg-cream px-4 py-3 text-sm text-text outline-none focus:border-bronze" placeholder={'Swimming pool\nSmart home\n24/7 security'} /></div>
-              <div className="sm:col-span-2"><label className="mb-1.5 block text-sm font-semibold text-forest">Main Image URL</label><input name="image" value={form.image} onChange={handleChange} placeholder="https://..." className="w-full rounded-md border border-cream bg-cream px-4 py-3 text-sm text-text outline-none focus:border-bronze" /></div>
+              {/* Photo Upload */}
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-sm font-semibold text-forest">Property Photos</label>
+                <div className="flex flex-wrap gap-3">
+                  {photoPreviews.map((src, i) => (
+                    <div key={i} className="relative h-24 w-24 overflow-hidden rounded-lg border border-cream bg-cream">
+                      <img src={src} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
+                      <button type="button" onClick={() => removePhoto(i)} className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600">×</button>
+                      {i === 0 && <span className="absolute bottom-0 left-0 w-full bg-black/50 text-center text-[0.55rem] font-semibold text-white">Main</span>}
+                    </div>
+                  ))}
+                  <label className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-cream bg-cream hover:border-bronze transition-colors">
+                    <svg className="h-6 w-6 text-text/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    <span className="mt-1 text-[0.6rem] text-text/40">Add photos</span>
+                    <input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={handlePhotoSelect} className="hidden" />
+                  </label>
+                </div>
+                <p className="mt-1.5 text-[0.65rem] text-text/40">JPG, PNG or WebP. Max 10MB each. First photo is the main image.</p>
+              </div>
             </div>
             <div className="flex gap-3">
               <button type="submit" disabled={saving} className="btn-forest disabled:opacity-50">{saving ? 'Saving...' : editingId ? 'Update & Resubmit' : 'Submit for Review'}</button>
