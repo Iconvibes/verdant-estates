@@ -211,3 +211,17 @@ CREATE POLICY "Authenticated users can manage team members"
   ON team_members FOR ALL USING (auth.role() = 'authenticated');
 
 CREATE INDEX IF NOT EXISTS idx_team_members_sort ON team_members(sort_order);
+
+-- ═══════════════════════════════════════════════════════════════
+-- 12. Assign listings to team members
+-- ═══════════════════════════════════════════════════════════════
+
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS team_member_id UUID REFERENCES team_members(id);
+CREATE INDEX IF NOT EXISTS idx_listings_team_member ON listings(team_member_id);
+
+-- ═══════════════════════════════════════════════════════════════
+-- 13. Route enquiries to assigned team member
+-- ═══════════════════════════════════════════════════════════════
+
+ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS team_member_id UUID REFERENCES team_members(id);
+CREATE INDEX IF NOT EXISTS idx_enquiries_team_member ON enquiries(team_member_id);

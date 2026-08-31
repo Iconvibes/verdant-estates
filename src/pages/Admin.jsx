@@ -447,7 +447,7 @@ const DashboardTab = ({ listings, enquiries, alerts }) => {
 
 /* ──────────── Listings Tab ──────────── */
 
-const ListingsTab = ({ listings, onRefresh }) => {
+const ListingsTab = ({ listings, teamMembers, onRefresh }) => {
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -461,6 +461,12 @@ const ListingsTab = ({ listings, onRefresh }) => {
   }, [])
 
   useEffect(() => () => clearTimeout(timerRef.current), [])
+
+  const getTeamMemberName = (id) => {
+    if (!id || !teamMembers) return 'Admin'
+    const m = teamMembers.find((tm) => tm.id === id)
+    return m ? m.name : 'Admin'
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return listings
@@ -614,7 +620,7 @@ const ListingsTab = ({ listings, onRefresh }) => {
 
 /* ──────────── Listing Form ──────────── */
 
-const ListingForm = ({ listing, onSaved, onCancel }) => {
+const ListingForm = ({ listing, teamMembers, onSaved, onCancel }) => {
   const initial = listing
     ? {
         ...listing,
@@ -667,6 +673,7 @@ const ListingForm = ({ listing, onSaved, onCancel }) => {
         image: images.length > 0 ? images[0] : form.image || '',
         images,
       }
+      payload.teamMemberId = form.teamMemberId || null
       delete payload.featuresText
 
       if (listing) {
@@ -1365,7 +1372,7 @@ const Admin = () => {
               <DashboardTab listings={listings} enquiries={enquiries} alerts={alerts} />
             )}
             {activeTab === 'listings' && (
-              <ListingsTab listings={listings} onRefresh={fetchAll} />
+              <ListingsTab listings={listings} teamMembers={teamMembers} onRefresh={fetchAll} />
             )}
             {activeTab === 'enquiries' && (
               <EnquiriesTab enquiries={enquiries} onRefresh={fetchAll} />
