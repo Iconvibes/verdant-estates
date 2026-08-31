@@ -73,7 +73,7 @@ const Home = () => {
           className="absolute inset-0 h-full w-full object-cover opacity-40"
           aria-hidden="true"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-forest-deep/70 via-forest/40 to-cream" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-b from-forest-deep/70 via-forest/50 to-forest-deep/90" aria-hidden="true" />
 
         <div className="container-x relative py-16 md:py-20">
           <p className="eyebrow">Sustainable Luxury Living · Lagos</p>
@@ -93,7 +93,7 @@ const Home = () => {
             </Link>
           </div>
 
-          <div className="mt-16 grid max-w-3xl grid-cols-2 gap-6 border-t border-cream/20 pt-8 sm:grid-cols-4">
+          <div className="mt-16 grid max-w-3xl grid-cols-2 gap-6 border-t border-cream/30 pt-8 sm:grid-cols-4">
             {stats.map((s) => (
               <div key={s.label}>
                 <p className="font-serif text-3xl font-bold text-bronze">
