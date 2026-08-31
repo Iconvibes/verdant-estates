@@ -61,12 +61,14 @@ const AgentDashboard = () => {
       const prof = JSON.parse(profileJson)
       setProfile(prof)
 
-      const [listingsResult, enquiriesResult] = await Promise.all([
+      const [listingsResult, enquiriesResult, metricsResult] = await Promise.all([
         fetchAgentListings(prof.id),
         fetchAgentEnquiries(prof.id),
+        getListingMetrics(prof.id),
       ])
       setListings(listingsResult.listings || [])
       setEnquiries(enquiriesResult.enquiries || [])
+      setMetrics(metricsResult)
     } catch {
       navigate('/agent/login')
     }
@@ -158,7 +160,9 @@ const AgentDashboard = () => {
     published: listings.filter((l) => l.status === 'published').length,
     pending: listings.filter((l) => l.status === 'pending').length,
     enquiries: enquiries.length,
-  }), [listings, enquiries])
+    views: metrics?.totalViews || 0,
+    saves: metrics?.totalSaves || 0,
+  }), [listings, enquiries, metrics])
 
   if (!profile) return null
 
@@ -185,12 +189,14 @@ const AgentDashboard = () => {
 
       <div className="mx-auto max-w-6xl px-6 py-8">
         {/* Stats */}
-        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {[
             { label: 'Total Listings', value: stats.total },
             { label: 'Published', value: stats.published, color: 'text-green-600' },
             { label: 'Pending Review', value: stats.pending, color: 'text-amber-600' },
+            { label: 'Total Views', value: stats.views, color: 'text-purple-600' },
             { label: 'Enquiries', value: stats.enquiries, color: 'text-blue-600' },
+            { label: 'Saves', value: stats.saves, color: 'text-pink-600' },
           ].map((s) => (
             <div key={s.label} className="rounded-xl bg-white p-5 shadow-soft">
               <p className={`font-serif text-3xl font-bold ${s.color || 'text-forest'}`}>{s.value}</p>
@@ -230,25 +236,47 @@ const AgentDashboard = () => {
                 <p className="text-text/50">No listings yet.</p>
                 <button onClick={() => setTab('new')} className="btn-forest mt-4">Add Your First Listing</button>
               </div>
-            ) : listings.map((l) => (
-              <div key={l.id} className="flex items-center gap-4 rounded-xl bg-white p-4 shadow-soft sm:p-5">
-                <div className="h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-cream">
-                  {l.image ? <img src={l.image} alt={l.name} className="h-full w-full object-cover" /> : null}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="truncate font-serif font-bold text-forest">{l.name}</h3>
-                    <span className="shrink-0 rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase">{l.status}</span>
+            ) : listings.map((l) => {
+              const m = metrics?.listings?.find((ml) => ml.id === l.id) || {}
+              return (
+              <div key={l.id} className="rounded-xl bg-white p-4 shadow-soft sm:p-5">
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-cream">
+                    {l.image ? <img src={l.image} alt={l.name} className="h-full w-full object-cover" /> : null}
                   </div>
-                  <p className="mt-0.5 text-xs text-text/50">{l.type} &middot; {l.address}</p>
-                  <p className="mt-1 font-serif text-sm font-bold text-bronze">{formatPrice(l.price)}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="truncate font-serif font-bold text-forest">{l.name}</h3>
+                      <span className="shrink-0 rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase">{l.status}</span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-text/50">{l.type} &middot; {l.address}</p>
+                    <p className="mt-1 font-serif text-sm font-bold text-bronze">{formatPrice(l.price)}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <button onClick={() => startEdit(l)} className="rounded-md bg-cream px-3 py-1.5 text-xs font-semibold text-forest hover:bg-forest/10">Edit</button>
+                    <button onClick={() => handleDelete(l.id)} className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100">Delete</button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 gap-2">
-                  <button onClick={() => startEdit(l)} className="rounded-md bg-cream px-3 py-1.5 text-xs font-semibold text-forest hover:bg-forest/10">Edit</button>
-                  <button onClick={() => handleDelete(l.id)} className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100">Delete</button>
-                </div>
+                {/* Performance metrics */}
+                {(m.views || m.enquiries || m.saves) ? (
+                  <div className="mt-3 flex gap-4 border-t border-cream pt-3">
+                    <div className="flex items-center gap-1.5 text-xs text-text/60">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                      <span className="font-semibold text-purple-600">{m.views || 0}</span> views
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-text/60">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                      <span className="font-semibold text-blue-600">{m.enquiries || 0}</span> enquiries
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-text/60">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                      <span className="font-semibold text-pink-600">{m.saves || 0}</span> saves
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
 

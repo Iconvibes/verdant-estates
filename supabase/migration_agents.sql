@@ -112,3 +112,11 @@ CREATE INDEX IF NOT EXISTS idx_listings_agent_id ON listings(agent_id);
 -- 6. Add view_count to listings for performance tracking
 ALTER TABLE listings ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0;
 CREATE INDEX IF NOT EXISTS idx_listings_view_count ON listings(view_count DESC);
+
+-- 7. RPC function for atomic view counting
+CREATE OR REPLACE FUNCTION increment_view_count(p_listing_id BIGINT)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE listings SET view_count = COALESCE(view_count, 0) + 1 WHERE id = p_listing_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
