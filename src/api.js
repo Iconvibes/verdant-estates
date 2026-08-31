@@ -23,6 +23,19 @@ export function getToken() {
   return authToken
 }
 
+// ── Storage helpers ──────────────────────────────────────────────────────────
+
+export async function uploadAgentPhoto(file) {
+  const ext = file.name.split('.').pop()
+  const path = `agent-photos/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const { error } = await supabase.storage
+    .from('agent-photos')
+    .upload(path, file, { contentType: file.type, upsert: false })
+  if (error) throw new Error(error.message)
+  const { data: urlData } = supabase.storage.from('agent-photos').getPublicUrl(path)
+  return urlData.publicUrl
+}
+
 // ── Auth ────────────────────────────────────────────────────────────────────
 
 export async function login({ email, password }) {
@@ -44,7 +57,7 @@ export async function login({ email, password }) {
   // Check if user is an agent by looking up agents table
   const { data: agentRow } = await supabase
     .from('agents')
-    .select('id, full_name')
+    .select('id, full_name, photo_url')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -62,6 +75,7 @@ export async function login({ email, password }) {
       email: user.email,
       name: user.user_metadata?.name || agentRow?.full_name || user.email?.split('@')[0] || 'User',
       role,
+      photoUrl: agentRow?.photo_url || null,
       mustChangePassword: user.user_metadata?.mustChangePassword ?? false,
     },
   }
@@ -94,7 +108,7 @@ export async function fetchCurrentUser() {
 
   const { data: agentRow } = await supabase
     .from('agents')
-    .select('id, full_name')
+    .select('id, full_name, photo_url')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -109,6 +123,7 @@ export async function fetchCurrentUser() {
       email: user.email,
       name: user.user_metadata?.name || agentRow?.full_name || user.email?.split('@')[0] || 'User',
       role,
+      photoUrl: agentRow?.photo_url || null,
       mustChangePassword: user.user_metadata?.mustChangePassword ?? false,
     },
   }
@@ -370,7 +385,7 @@ export async function checkAlerts(email) {
 // Agent Auth & Profile
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export async function registerAgent({ name, email, password, phone }) {
+export async function registerAgent({ name, email, password, phone, photoUrl }) {
   // 1. Create Supabase Auth user with role: 'agent'
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -383,9 +398,10 @@ export async function registerAgent({ name, email, password, phone }) {
   if (data.user) {
     const { error: profileError } = await supabase.from('agents').insert({
       user_id: data.user.id,
-      name,
+      full_name: name,
       email,
       phone: phone || null,
+      photo_url: photoUrl || null,
     })
     if (profileError) throw new Error(profileError.message)
   }
@@ -411,11 +427,12 @@ export async function fetchAgentProfile(userId) {
   return {
     id: data.id,
     userId: data.user_id,
-    name: data.name,
+    name: data.full_name || data.name,
     email: data.email,
     phone: data.phone,
     role: data.role,
-    photo: data.photo,
+    photo: data.photo_url || data.photo || null,
+    photoUrl: data.photo_url || data.photo || null,
     bio: data.bio,
     specialties: data.specialties || [],
     languages: data.languages || ['English'],
@@ -545,6 +562,30 @@ export async function fetchAgentEnquiries(agentId) {
       propertyName: e.property_name || null,
       status: e.status,
       createdAt: e.created_at,
+    })),
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Admin: Fetch All Agents
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function fetchAgents() {
+  const { data, error } = await supabase
+    .from('agents')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return {
+    agents: (data || []).map((a) => ({
+      id: a.id,
+      userId: a.user_id,
+      name: a.full_name || a.name,
+      email: a.email,
+      phone: a.phone,
+      photo: a.photo_url || a.photo || null,
+      bio: a.bio,
+      createdAt: a.created_at,
     })),
   }
 }

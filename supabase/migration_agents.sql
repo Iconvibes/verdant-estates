@@ -120,3 +120,32 @@ BEGIN
   UPDATE listings SET view_count = COALESCE(view_count, 0) + 1 WHERE id = p_listing_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ═══════════════════════════════════════════════════════════════
+-- 8. Supabase Storage bucket for agent profile photos
+-- ═══════════════════════════════════════════════════════════════
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('agent-photos', 'agent-photos', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp'])
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage RLS policies
+DROP POLICY IF EXISTS "Agent photos are publicly readable" ON storage.objects;
+CREATE POLICY "Agent photos are publicly readable"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'agent-photos');
+
+DROP POLICY IF EXISTS "Authenticated users can upload agent photos" ON storage.objects;
+CREATE POLICY "Authenticated users can upload agent photos"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'agent-photos' AND auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Users can update own agent photos" ON storage.objects;
+CREATE POLICY "Users can update own agent photos"
+  ON storage.objects FOR UPDATE
+  USING (bucket_id = 'agent-photos' AND auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Users can delete own agent photos" ON storage.objects;
+CREATE POLICY "Users can delete own agent photos"
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'agent-photos' AND auth.role() = 'authenticated');

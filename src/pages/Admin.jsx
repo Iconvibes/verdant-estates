@@ -9,6 +9,7 @@ import {
   fetchEnquiries,
   fetchAlerts,
   fetchPendingListings,
+  fetchAgents,
   approveListing,
   rejectListing,
   changePassword,
@@ -1030,6 +1031,8 @@ const Admin = () => {
   const [enquiries, setEnquiries] = useState([])
   const [alerts, setAlerts] = useState([])
   const [pendingListings, setPendingListings] = useState([])
+  const [agents, setAgents] = useState([])
+  const [notifOpen, setNotifOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mustChangePassword, setMustChangePassword] = useState(false)
@@ -1042,16 +1045,18 @@ const Admin = () => {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [listingsRes, enquiriesRes, alertsRes, pendingRes] = await Promise.allSettled([
+      const [listingsRes, enquiriesRes, alertsRes, pendingRes, agentsRes] = await Promise.allSettled([
         fetchListings(),
         fetchEnquiries(),
         fetchAlerts(),
         fetchPendingListings(),
+        fetchAgents(),
       ])
       setListings(listingsRes.status === 'fulfilled' ? (listingsRes.value?.listings || []) : [])
       setEnquiries(enquiriesRes.status === 'fulfilled' ? (enquiriesRes.value?.enquiries || []) : [])
       setAlerts(alertsRes.status === 'fulfilled' ? (alertsRes.value?.alerts || []) : [])
       setPendingListings(pendingRes.status === 'fulfilled' ? (pendingRes.value?.listings || []) : [])
+      setAgents(agentsRes.status === 'fulfilled' ? (agentsRes.value?.agents || []) : [])
     } catch {
       // handled by individual calls
     } finally {
@@ -1212,6 +1217,85 @@ const Admin = () => {
             </button>
             <h1 className="font-serif text-lg font-bold text-forest capitalize">{activeTab}</h1>
             <div className="ml-auto flex items-center gap-3">
+              {/* Notifications bell */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setNotifOpen(!notifOpen)}
+                  className="relative rounded-md p-2 text-text/60 hover:text-forest"
+                  aria-label="Notifications"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+                  {(pendingListings.length > 0 || agents.length > 0) && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[0.55rem] font-bold text-white">
+                      {pendingListings.length + agents.length}
+                    </span>
+                  )}
+                </button>
+
+                {/* Dropdown */}
+                {notifOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+                    <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-xl border border-cream bg-white shadow-lift">
+                      <div className="border-b border-cream px-4 py-3">
+                        <h3 className="font-serif text-sm font-bold text-forest">Notifications</h3>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {pendingListings.length === 0 && agents.length === 0 ? (
+                          <p className="px-4 py-6 text-center text-xs text-text/40">No new notifications</p>
+                        ) : (
+                          <>
+                            {pendingListings.length > 0 && (
+                              <div>
+                                <div className="bg-amber-50 px-4 py-2">
+                                  <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-amber-700">Pending Listings ({pendingListings.length})</p>
+                                </div>
+                                {pendingListings.slice(0, 5).map((l) => (
+                                  <button
+                                    key={l.id}
+                                    onClick={() => { setActiveTab('pending'); setNotifOpen(false) }}
+                                    className="flex w-full items-center gap-3 border-b border-cream/50 px-4 py-3 text-left hover:bg-cream/50 transition-colors"
+                                  >
+                                    <div className="h-8 w-8 shrink-0 overflow-hidden rounded bg-cream">
+                                      {l.image ? <img src={l.image} alt="" className="h-full w-full object-cover" /> : null}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-xs font-semibold text-forest">{l.name}</p>
+                                      <p className="text-[0.65rem] text-text/40">Awaiting approval</p>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {agents.length > 0 && (
+                              <div>
+                                <div className="bg-blue-50 px-4 py-2">
+                                  <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-blue-700">Registered Agents ({agents.length})</p>
+                                </div>
+                                {agents.slice(0, 5).map((a) => (
+                                  <div key={a.id} className="flex items-center gap-3 border-b border-cream/50 px-4 py-3">
+                                    {a.photo ? (
+                                      <img src={a.photo} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                                    ) : (
+                                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-forest/10 text-[0.6rem] font-bold text-forest">{a.name?.split(' ').map((n) => n[0]).join('')}</span>
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-xs font-semibold text-forest">{a.name}</p>
+                                      <p className="text-[0.65rem] text-text/40">{a.email}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
               <Link to="/" className="text-xs font-semibold text-text/60 transition-colors hover:text-forest">
                 ← Back to Site
               </Link>

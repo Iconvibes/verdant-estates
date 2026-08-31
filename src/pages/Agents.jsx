@@ -17,12 +17,12 @@ const Agents = () => {
     supabase.from('agents').select('*').then(({ data }) => {
       const dbAgents = (data || []).map((a) => ({
         id: a.id,
-        name: a.name,
+        name: a.full_name || a.name,
         role: a.role || 'Sales Partner',
         phone: a.phone || '',
         email: a.email,
-        photo: a.photo || '',
-        initials: a.name.split(' ').map((n) => n[0]).join(''),
+        photo: a.photo_url || a.photo || '',
+        initials: (a.full_name || a.name || '').split(' ').map((n) => n[0]).join(''),
         specialties: a.specialties || [],
         experience: a.experience || 0,
         bio: a.bio || '',

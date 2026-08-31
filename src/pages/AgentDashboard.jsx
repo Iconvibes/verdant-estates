@@ -172,9 +172,13 @@ const AgentDashboard = () => {
       <header className="bg-forest-deep text-cream">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-bronze font-serif text-sm font-bold text-forest-deep">
-              {profile.name.split(' ').map((n) => n[0]).join('')}
-            </span>
+            {profile.photoUrl ? (
+              <img src={profile.photoUrl} alt={profile.name} className="h-10 w-10 rounded-full object-cover" />
+            ) : (
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-bronze font-serif text-sm font-bold text-forest-deep">
+                {profile.name.split(' ').map((n) => n[0]).join('')}
+              </span>
+            )}
             <div>
               <p className="font-serif font-bold">{profile.name}</p>
               <p className="text-xs text-cream/60">{profile.role}</p>
