@@ -348,8 +348,8 @@ describe('Server Security', () => {
 // 10. Build Contract
 // ═══════════════════════════════════════════════════════════════════════════════
 describe('Build Artifacts', () => {
-  it('vite.config.js exists', () => {
-    assert.ok(read('vite.config.js'))
+  it('vite.config.deploy.js exists', () => {
+    assert.ok(read('vite.config.deploy.js'))
   })
 
   it('tailwind.config.js exists', () => {
