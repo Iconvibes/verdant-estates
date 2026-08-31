@@ -163,7 +163,9 @@ const LoginForm = ({ onLogin }) => {
           </button>
         </form>
 
-
+        <div className="mt-6 border-t border-cream pt-4 text-center">
+          <Link to="/" className="text-xs font-semibold text-text/40 hover:text-forest">← Back to website</Link>
+        </div>
       </div>
     </section>
   )

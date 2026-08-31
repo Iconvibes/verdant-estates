@@ -91,8 +91,9 @@ const AgentLogin = () => {
           <Link to="/agent/register" className="font-semibold text-forest hover:text-bronze">Register here</Link>
         </p>
 
-        <div className="mt-4 border-t border-cream pt-4 text-center">
+        <div className="mt-4 border-t border-cream pt-4 text-center space-y-2">
           <Link to="/admin" className="text-xs text-text/40 hover:text-forest">Admin Login →</Link>
+          <div><Link to="/" className="text-xs font-semibold text-text/40 hover:text-forest">← Back to website</Link></div>
         </div>
       </div>
     </section>

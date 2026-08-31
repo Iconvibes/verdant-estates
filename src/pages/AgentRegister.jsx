@@ -111,6 +111,10 @@ const AgentRegister = () => {
           Already have an account?{' '}
           <Link to="/agent/login" className="font-semibold text-forest hover:text-bronze">Sign in</Link>
         </p>
+
+        <div className="mt-4 border-t border-cream pt-4 text-center">
+          <Link to="/" className="text-xs font-semibold text-text/40 hover:text-forest">← Back to website</Link>
+        </div>
       </div>
     </section>
   )
