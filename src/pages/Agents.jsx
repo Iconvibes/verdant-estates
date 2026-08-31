@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { getAllAgents, getAllProperties } from '../data'
+import { getAllProperties } from '../data'
+import { AGENTS } from '../data/agents'
 import AgentCard from '../components/AgentCard'
 import SEO, { organisationSchema } from '../components/SEO'
 import useHead from '../hooks/useHead'
@@ -12,7 +13,6 @@ const Agents = () => {
   const properties = getAllProperties()
 
   useEffect(() => {
-    const staticAgents = getAllAgents()
     // Fetch team members from Supabase (admin-managed)
     supabase.from('team_members').select('*').order('sort_order', { ascending: true }).then(({ data }) => {
       const dbMembers = (data || []).map((a) => ({
@@ -30,8 +30,8 @@ const Agents = () => {
         certifications: a.certifications || [],
       }))
       // Use DB team members if any exist, otherwise fall back to static data
-      setAllAgents(dbMembers.length > 0 ? dbMembers : staticAgents)
-    }).catch(() => setAllAgents(staticAgents))
+      setAllAgents(dbMembers.length > 0 ? dbMembers : AGENTS)
+    }).catch(() => setAllAgents(AGENTS))
   }, [])
 
   const agents = allAgents

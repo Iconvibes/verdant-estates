@@ -10,6 +10,7 @@ const exploreItems = [
   { to: '/listings', label: 'Listings' },
   { to: '/areas', label: 'Neighbourhoods' },
   { to: '/agents', label: 'Our Team' },
+    { to: '/registered-agents', label: 'Agents' },
 ]
 
 const companyItems = [

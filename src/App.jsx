@@ -16,6 +16,7 @@ import About from './pages/About'
 import Contact from './pages/Contact'
 import Compare from './pages/Compare'
 import Agents from './pages/Agents'
+import RegisteredAgents from './pages/RegisteredAgents'
 import AgentProfile from './pages/AgentProfile'
 import Areas from './pages/Areas'
 import AreaProfile from './pages/AreaProfile'
@@ -42,7 +43,7 @@ const NotFound = () => (
 
 const AppContent = () => {
   const location = useLocation()
-  const isAdmin = location.pathname.startsWith('/admin') || location.pathname.startsWith('/agent')
+  const isAdmin = location.pathname.startsWith('/admin') || ['/agent/login', '/agent/register', '/agent/dashboard'].includes(location.pathname)
 
   return (
       <CurrencyProvider>
@@ -71,6 +72,7 @@ const AppContent = () => {
                   <Route path="/areas" element={<Areas />} />
                   <Route path="/areas/:id" element={<AreaProfile />} />
                   <Route path="/agents" element={<Agents />} />
+                  <Route path="/registered-agents" element={<RegisteredAgents />} />
                   <Route path="/agents/:id" element={<AgentProfile />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/blog" element={<Blog />} />
