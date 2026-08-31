@@ -33,10 +33,30 @@ import {
 const ListingDetail = () => {
   const { id } = useParams()
   const { formatPrice } = useCurrency()
-  const property = getPropertyById(id)
+  const [property, setProperty] = useState(null)
   const { isSaved, toggleSaved } = useSavedHomes()
   const { recentIds, trackView, clearRecent } = useRecentlyViewed()
   const saved = property ? isSaved(property.id) : false
+
+  // Fetch property on mount and when id changes
+  useEffect(() => {
+    const p = getPropertyById(id)
+    if (p) {
+      setProperty(p)
+    } else {
+      // Cache might not be loaded yet — poll until it is
+      let attempts = 0
+      const interval = setInterval(() => {
+        attempts++
+        const retry = getPropertyById(id)
+        if (retry || attempts > 20) {
+          setProperty(retry)
+          clearInterval(interval)
+        }
+      }, 300)
+      return () => clearInterval(interval)
+    }
+  }, [id])
 
   // three interior shots from the walkthrough sequence, deterministic per property
   const interiorShots = useMemo(() => {
@@ -45,10 +65,15 @@ const ListingDetail = () => {
     return [start, start + 15, start + 30].map((i) => getFrameUrl(i % TOTAL_FRAMES))
   }, [property])
 
-  const [activeImage, setActiveImage] = useState(property ? (
-    property.images && property.images.length > 0 ? property.images[0] : property.image
-  ) : null)
-  const [viewTab, setViewTab] = useState('gallery') // 'gallery' | 'floorplan'
+  const [activeImage, setActiveImage] = useState(null)
+  const [viewTab, setViewTab] = useState('gallery')
+
+  // Reset active image when property changes
+  useEffect(() => {
+    if (property) {
+      setActiveImage(property.images && property.images.length > 0 ? property.images[0] : property.image)
+    }
+  }, [property])
 
   // Parallax refs
   const heroRef = useRef(null)
@@ -59,7 +84,6 @@ const ListingDetail = () => {
     if (!property) return undefined
 
     const ctx = gsap.context(() => {
-      // Hero image parallax — moves slower than scroll
       if (heroImgRef.current) {
         gsap.fromTo(
           heroImgRef.current,
@@ -77,7 +101,6 @@ const ListingDetail = () => {
         )
       }
 
-      // Gallery image — subtle parallax on scroll
       if (galleryRef.current) {
         gsap.fromTo(
           galleryRef.current,
@@ -128,24 +151,19 @@ const ListingDetail = () => {
         />
         <section className="section bg-cream">
           <div className="container-x mx-auto max-w-xl text-center">
-            <h1 className="font-serif text-4xl font-bold">Home Not Found</h1>
-            <p className="mt-4 text-text/70">
-              We couldn&rsquo;t find that listing — it may have sold or the link is out of date.
-            </p>
-            <Link to="/listings" className="btn-forest mt-8">
-              Back to Listings
-            </Link>
+            <h1 className="font-serif text-4xl font-bold">Loading...</h1>
           </div>
         </section>
       </>
     )
   }
 
-  // Use images array if available, otherwise fall back to image + interior shots
   const gallery = property.images && property.images.length > 0
     ? property.images
     : [property.image, ...interiorShots]
-  const related = getAllProperties().filter((p) => p.id !== property.id).slice(0, 3)
+
+  const allProps = getAllProperties()
+  const related = Array.isArray(allProps) ? allProps.filter((p) => p.id !== property.id).slice(0, 3) : []
 
   return (
     <>
@@ -171,9 +189,7 @@ const ListingDetail = () => {
       <section className="section bg-cream">
         <div className="container-x">
           <div className="grid gap-12 lg:grid-cols-[1fr_400px]">
-            {/* LEFT: gallery / floorplan + details */}
             <div>
-              {/* Tab Switcher */}
               <div className="mb-4 flex gap-2">
                 <button
                   type="button"
@@ -204,9 +220,8 @@ const ListingDetail = () => {
                   <div className="overflow-hidden rounded-xl bg-forest-deep shadow-lift">
                     <img
                       ref={galleryRef}
-                      src={activeImage}
+                      src={activeImage || property.image}
                       alt={property.name}
-                     
                       className="aspect-[16/10] w-full object-cover will-change-transform"
                     />
                   </div>
@@ -217,7 +232,6 @@ const ListingDetail = () => {
                         key={i}
                         type="button"
                         onClick={() => setActiveImage(src)}
-                       
                         className={`overflow-hidden rounded-lg transition-all duration-200 ${
                           activeImage === src
                             ? 'ring-2 ring-bronze ring-offset-2 ring-offset-cream'
@@ -279,7 +293,6 @@ const ListingDetail = () => {
               </div>
             </div>
 
-            {/* RIGHT: price card + agent */}
             <aside className="lg:sticky lg:top-24 lg:self-start">
               <div className="rounded-xl bg-white p-8 shadow-lift">
                 <p className="text-xs font-bold uppercase tracking-[0.25em] text-bronze">Offered At</p>
@@ -338,7 +351,6 @@ const ListingDetail = () => {
             </aside>
           </div>
 
-          {/* MORTGAGE CALCULATOR */}
           <div className="mt-12 lg:mt-16 lg:grid lg:grid-cols-[1fr_400px] lg:gap-12">
             <div />
             <MortgageCalculator price={property.price} />
@@ -346,7 +358,6 @@ const ListingDetail = () => {
         </div>
       </section>
 
-      {/* RELATED */}
       <SEO data={listingSchema(property)} />
       <SEO data={breadcrumbSchema([
         { name: 'Home', url: '/' },

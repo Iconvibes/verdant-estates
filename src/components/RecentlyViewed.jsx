@@ -47,6 +47,7 @@ const RecentlyViewed = ({ ids, excludeId, onClear }) => {
 const MiniCard = ({ property }) => {
   const { isSaved, toggleSaved } = useSavedHomes()
   const { isComparing, toggleCompare, canAdd } = useCompare()
+  const { formatPrice } = useCurrency()
   const saved = isSaved(property.id)
   const comparing = isComparing(property.id)
 

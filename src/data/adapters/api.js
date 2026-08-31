@@ -1,16 +1,35 @@
 /**
- * API Adapter — uses the server REST endpoints.
- * Used for production mode with persistent data.
+ * API Adapter — fetches properties from Supabase via src/api.js.
+ * Includes an in-memory cache so components that call getAllProperties()
+ * or getPropertyById() synchronously still work (return cached data).
  */
 import { fetchListings, fetchListingById } from '../../api.js'
 import { supabase } from '../../lib/supabase'
 
-async function getPropertyTypesFromDb() {
-  const { data, error } = await supabase.from('listings').select('type')
-  if (error) return ['All']
-  const types = [...new Set((data || []).map((r) => r.type))]
-  return ['All', ...types.sort()]
+// ═══════════════════════════════════════════════════════════════════════════════
+// In-memory cache
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let listingsCache = null
+let listingsPromise = null
+
+function fetchAndCache() {
+  if (!listingsPromise) {
+    listingsPromise = fetchListings({})
+      .then((data) => {
+        listingsCache = data.listings || []
+        return listingsCache
+      })
+      .catch(() => {
+        listingsCache = []
+        return listingsCache
+      })
+  }
+  return listingsPromise
 }
+
+// Kick off the fetch immediately on module load
+fetchAndCache()
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Helpers
@@ -27,18 +46,57 @@ let blogCache = null
 // Properties
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function getPropertiesAll(filters = {}) {
-  const data = await fetchListings(filters)
-  return data.listings || []
+function getPropertiesAll(filters = {}) {
+  // Return from cache synchronously if available, or trigger fetch
+  if (!listingsCache) {
+    fetchAndCache() // fire-and-forget — will populate cache asynchronously
+    return []
+  }
+
+  const all = listingsCache
+
+  // Apply filters in-memory (matching the old API behavior)
+  let result = [...all]
+
+  if (filters.type && filters.type !== 'All') {
+    result = result.filter((p) => p.type === filters.type)
+  }
+  if (filters.minPrice) {
+    result = result.filter((p) => p.price >= Number(filters.minPrice))
+  }
+  if (filters.maxPrice) {
+    result = result.filter((p) => p.price <= Number(filters.maxPrice))
+  }
+  if (filters.beds) {
+    result = result.filter((p) => p.beds >= Number(filters.beds))
+  }
+  if (filters.q) {
+    const q = filters.q.toLowerCase()
+    result = result.filter((p) =>
+      `${p.name} ${p.address} ${p.type}`.toLowerCase().includes(q)
+    )
+  }
+  if (filters.sort === 'price-asc') {
+    result.sort((a, b) => a.price - b.price)
+  } else if (filters.sort === 'price-desc') {
+    result.sort((a, b) => b.price - a.price)
+  } else if (filters.sort === 'newest') {
+    result.sort((a, b) => (b.yearBuilt || 0) - (a.yearBuilt || 0))
+  }
+
+  return result
 }
 
-async function getPropertyById(id) {
-  const data = await fetchListingById(id)
-  return data.listing || null
+function getPropertyById(id) {
+  if (!listingsCache) return null
+  const numId = Number(id)
+  return listingsCache.find((p) => p.id === numId || p.id === String(id)) || null
 }
 
-async function getPropertyTypes() {
-  return getPropertyTypesFromDb()
+function getPropertyTypes() {
+  if (!listingsCache) return ['All']
+  const types = [...new Set(listingsCache.map((p) => p.type))]
+  return ['All', ...types.sort()]
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -61,7 +119,7 @@ async function getAreaById(id) {
 async function getAreaListings(areaId) {
   const area = await getAreaById(areaId)
   if (!area) return []
-  const all = await getPropertiesAll()
+  const all = listingsCache || []
   return all.filter((p) => {
     const addr = p.address.toLowerCase()
     return addr.includes(area.name.toLowerCase()) || addr.includes(area.id.replace('-', ' '))
@@ -85,8 +143,8 @@ async function getAgentById(id) {
   return agents.find((a) => a.id === id) || null
 }
 
-async function getAgentListings(agentId) {
-  const all = await getPropertiesAll()
+function getAgentListings(agentId) {
+  const all = listingsCache || []
   return all.filter((p) => p.agent?.email?.includes(agentId.replace('-', '.')))
 }
 

@@ -6,14 +6,14 @@ import StaggerReveal from '../components/StaggerReveal'
 import { getFrameUrl } from '../data/frames'
 
 const Agents = () => {
+  const agents = getAllAgents()
+  const properties = getAllProperties()
+
   useHead({
     title: 'Our Team',
     description: 'Meet the Verdant Estates sales partners — experienced, trusted advisors specialising in Lagos luxury property, waterfront villas, and sustainable homes.',
     url: 'https://verdantestates.ng/agents',
   })
-
-  const agents = getAllAgents()
-  const properties = getAllProperties()
 
   // Count listings per agent
   const listingCounts = {}

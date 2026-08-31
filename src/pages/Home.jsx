@@ -122,7 +122,7 @@ const Home = () => {
               </p>
             </div>
             <Link to="/listings" className="btn-forest !py-3 text-xs">
-              View All 12 Listings
+              View All Listings
             </Link>
           </div>
 

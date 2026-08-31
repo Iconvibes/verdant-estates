@@ -68,7 +68,6 @@ const Listings = () => {
   const allProperties = getAllProperties()
   const types = useMemo(() => ['All', ...new Set(allProperties.map((p) => p.type))], [allProperties])
 
-
   const [toast, setToast] = useState(null)
   const toastRef = useRef(null)
   const toastTimer = useRef(null)
@@ -302,9 +301,7 @@ const Listings = () => {
                     Clear All
                   </button>
                 )}
-                <span className="text-sm text-text/60">
-                  Showing {visible.length} of {allProperties.length} homes
-                </span>
+
               </div>
 
 

@@ -5,11 +5,11 @@
  * is determined at config time. This is the seam — the interface is the test surface.
  */
 import { createStaticAdapter } from './adapters/static.js'
-import { createSupabaseAdapter } from './adapters/supabase.js'
+import { createApiAdapter } from './adapters/api.js'
 
 // Auto-select adapter: if API URL is set, use Supabase/API; otherwise static.
 const hasApi = !!import.meta.env.VITE_API_URL || window.location.hostname === 'localhost'
-let adapter = hasApi ? createSupabaseAdapter() : createStaticAdapter()
+let adapter = hasApi ? createApiAdapter() : createStaticAdapter()
 
 /**
  * Switch the data adapter at runtime.
