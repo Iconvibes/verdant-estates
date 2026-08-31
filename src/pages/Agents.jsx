@@ -1,13 +1,39 @@
+import { useState, useEffect } from 'react'
 import { getAllAgents, getAllProperties } from '../data'
 import AgentCard from '../components/AgentCard'
 import SEO, { organisationSchema } from '../components/SEO'
 import useHead from '../hooks/useHead'
 import StaggerReveal from '../components/StaggerReveal'
 import { getFrameUrl } from '../data/frames'
+import { supabase } from '../lib/supabase'
 
 const Agents = () => {
-  const agents = getAllAgents()
+  const [allAgents, setAllAgents] = useState([])
   const properties = getAllProperties()
+
+  useEffect(() => {
+    const staticAgents = getAllAgents()
+    // Fetch registered agents from Supabase
+    supabase.from('agents').select('*').then(({ data }) => {
+      const dbAgents = (data || []).map((a) => ({
+        id: a.id,
+        name: a.name,
+        role: a.role || 'Sales Partner',
+        phone: a.phone || '',
+        email: a.email,
+        photo: a.photo || '',
+        initials: a.name.split(' ').map((n) => n[0]).join(''),
+        specialties: a.specialties || [],
+        experience: a.experience || 0,
+        bio: a.bio || '',
+        languages: a.languages || ['English'],
+        certifications: [],
+      }))
+      setAllAgents([...dbAgents, ...staticAgents])
+    }).catch(() => setAllAgents(staticAgents))
+  }, [])
+
+  const agents = allAgents
 
   useHead({
     title: 'Our Team',

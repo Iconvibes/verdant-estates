@@ -14,6 +14,7 @@ import StaggerReveal from '../components/StaggerReveal'
 import useHead from '../hooks/useHead'
 import useRecentlyViewed from '../hooks/useRecentlyViewed'
 import { useSavedHomes } from '../context/SavedHomesContext'
+import { trackListingView } from '../api'
 import { getFrameUrl, TOTAL_FRAMES } from '../data/frames'
 gsap.registerPlugin(ScrollTrigger)
 
@@ -43,6 +44,8 @@ const ListingDetail = () => {
     const p = getPropertyById(id)
     if (p) {
       setProperty(p)
+      // Track view (fire and forget)
+      trackListingView(Number(id)).catch(() => {})
     } else {
       // Cache might not be loaded yet — poll until it is
       let attempts = 0
@@ -51,6 +54,7 @@ const ListingDetail = () => {
         const retry = getPropertyById(id)
         if (retry || attempts > 20) {
           setProperty(retry)
+          if (retry) trackListingView(Number(id)).catch(() => {})
           clearInterval(interval)
         }
       }, 300)

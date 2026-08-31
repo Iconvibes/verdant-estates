@@ -8,6 +8,9 @@ import {
   fetchListings,
   fetchEnquiries,
   fetchAlerts,
+  fetchPendingListings,
+  approveListing,
+  rejectListing,
   changePassword,
   deleteListing,
   createListing,
@@ -36,6 +39,7 @@ import ImageUploader from '../components/ImageUploader'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard' },
+  { id: 'pending', label: 'Pending Approvals' },
   { id: 'listings', label: 'Listings' },
   { id: 'enquiries', label: 'Enquiries' },
   { id: 'alerts', label: 'Alerts' },
@@ -991,12 +995,39 @@ const AlertsTab = ({ alerts }) => (
 
 /* ──────────── Main Admin Page ──────────── */
 
+
+const PendingTab = ({ pending, onApprove, onReject }) => {
+  if (pending.length === 0) return <div className="rounded-xl bg-white p-12 text-center shadow-soft"><p className="text-text/50">No pending listings to review.</p></div>
+  return (
+    <div className="grid gap-4">
+      {pending.map((l) => (
+        <div key={l.id} className="flex items-center gap-4 rounded-xl bg-white p-4 shadow-soft sm:p-5">
+          <div className="h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-cream">
+            {l.image ? <img src={l.image} alt={l.name} className="h-full w-full object-cover" /> : null}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="truncate font-serif font-bold text-forest">{l.name}</h3>
+            <p className="mt-0.5 text-xs text-text/50">{l.type} &middot; {l.address}</p>
+            <p className="mt-1 font-serif text-sm font-bold text-bronze">{formatPrice(l.price)}</p>
+            <p className="mt-0.5 text-xs text-text/40">Submitted {new Date(l.createdAt).toLocaleDateString()}</p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button onClick={() => onApprove(l.id)} className="rounded-md bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-200">Approve</button>
+            <button onClick={() => onReject(l.id)} className="rounded-md bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200">Reject</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 const Admin = () => {
   const [user, setUser] = useState(null)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [listings, setListings] = useState([])
   const [enquiries, setEnquiries] = useState([])
   const [alerts, setAlerts] = useState([])
+  const [pendingListings, setPendingListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mustChangePassword, setMustChangePassword] = useState(false)
@@ -1009,14 +1040,16 @@ const Admin = () => {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [listingsRes, enquiriesRes, alertsRes] = await Promise.allSettled([
-        apiFetch('/listings'),
-        apiFetch('/enquiries'),
-        apiFetch('/alerts'),
+      const [listingsRes, enquiriesRes, alertsRes, pendingRes] = await Promise.allSettled([
+        fetchListings(),
+        fetchEnquiries(),
+        fetchAlerts(),
+        fetchPendingListings(),
       ])
-      setListings(listingsRes.status === 'fulfilled' ? (listingsRes.value.listings || []) : [])
-      setEnquiries(enquiriesRes.status === 'fulfilled' ? (enquiriesRes.value.enquiries || []) : [])
-      setAlerts(alertsRes.status === 'fulfilled' ? (alertsRes.value.alerts || []) : [])
+      setListings(listingsRes.status === 'fulfilled' ? (listingsRes.value?.listings || []) : [])
+      setEnquiries(enquiriesRes.status === 'fulfilled' ? (enquiriesRes.value?.enquiries || []) : [])
+      setAlerts(alertsRes.status === 'fulfilled' ? (alertsRes.value?.alerts || []) : [])
+      setPendingListings(pendingRes.status === 'fulfilled' ? (pendingRes.value?.listings || []) : [])
     } catch {
       // handled by individual calls
     } finally {
@@ -1134,6 +1167,11 @@ const Admin = () => {
                   }`}
                 >
                   {tab.label}
+                  {tab.id === 'pending' && pendingListings.length > 0 && (
+                    <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[0.6rem] font-bold text-white">
+                      {pendingListings.length}
+                    </span>
+                  )}
                   {tab.id === 'enquiries' && enquiries.length > 0 && (
                     <span className="ml-auto rounded-full bg-bronze px-2 py-0.5 text-[0.6rem] font-bold text-forest-deep">
                       {enquiries.filter((e) => e.status === 'new').length || enquiries.length}
@@ -1188,6 +1226,13 @@ const Admin = () => {
             )}
             {activeTab === 'enquiries' && (
               <EnquiriesTab enquiries={enquiries} onRefresh={fetchAll} />
+            )}
+            {activeTab === 'pending' && (
+              <PendingTab
+                pending={pendingListings}
+                onApprove={async (id) => { await approveListing(id); fetchAll() }}
+                onReject={async (id) => { await rejectListing(id); fetchAll() }}
+              />
             )}
             {activeTab === 'alerts' && <AlertsTab alerts={alerts} />}
           </div>

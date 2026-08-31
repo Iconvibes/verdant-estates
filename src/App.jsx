@@ -20,6 +20,9 @@ import AgentProfile from './pages/AgentProfile'
 import Areas from './pages/Areas'
 import AreaProfile from './pages/AreaProfile'
 import Admin from './pages/Admin'
+import AgentLogin from './pages/AgentLogin'
+import AgentRegister from './pages/AgentRegister'
+import AgentDashboard from './pages/AgentDashboard'
 import Blog from './pages/Blog'
 import BlogPost from './pages/BlogPost'
 
@@ -39,7 +42,7 @@ const NotFound = () => (
 
 const AppContent = () => {
   const location = useLocation()
-  const isAdmin = location.pathname.startsWith('/admin')
+  const isAdmin = location.pathname.startsWith('/admin') || location.pathname.startsWith('/agent')
 
   return (
       <CurrencyProvider>
@@ -75,6 +78,9 @@ const AppContent = () => {
                   <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/agent/login" element={<AgentLogin />} />
+                <Route path="/agent/register" element={<AgentRegister />} />
+                <Route path="/agent/dashboard" element={<AgentDashboard />} />
               </Routes>
             </main>
             {!isAdmin && <Footer />}

@@ -53,7 +53,7 @@ function getPropertiesAll(filters = {}) {
     return []
   }
 
-  const all = listingsCache
+  const all = listingsCache.filter(l => (l.status || 'published') === 'published')
 
   // Apply filters in-memory (matching the old API behavior)
   let result = [...all]

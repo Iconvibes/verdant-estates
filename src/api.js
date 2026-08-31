@@ -32,15 +32,36 @@ export async function login({ email, password }) {
   // Store the JWT so we can use it for RLS
   setToken(data.session.access_token)
 
-  // Fetch user profile from our users table or use auth metadata
   const user = data.user
+
+  // Check if user is an admin by looking up admin_users table
+  const { data: adminRow } = await supabase
+    .from('admin_users')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  // Check if user is an agent by looking up agents table
+  const { data: agentRow } = await supabase
+    .from('agents')
+    .select('id, full_name')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  // Determine role — only admin_users table or agents table grant access
+  const role = adminRow ? 'admin' : agentRow ? 'agent' : null
+  if (!role) {
+    setToken(null)
+    throw new Error('This account is not authorized. Contact the administrator.')
+  }
+
   return {
     token: data.session.access_token,
     user: {
       id: user.id,
       email: user.email,
-      name: user.user_metadata?.name || user.email?.split('@')[0] || 'Admin',
-      role: user.user_metadata?.role || 'admin',
+      name: user.user_metadata?.name || agentRow?.full_name || user.email?.split('@')[0] || 'User',
+      role,
       mustChangePassword: user.user_metadata?.mustChangePassword ?? false,
     },
   }
@@ -63,12 +84,31 @@ export async function register({ name, email, password }) {
 export async function fetchCurrentUser() {
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) throw new Error('Not authenticated')
+
+  // Check role from database tables
+  const { data: adminRow } = await supabase
+    .from('admin_users')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const { data: agentRow } = await supabase
+    .from('agents')
+    .select('id, full_name')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const role = adminRow ? 'admin' : agentRow ? 'agent' : null
+  if (!role) {
+    throw new Error('Account not authorized')
+  }
+
   return {
     user: {
       id: user.id,
       email: user.email,
-      name: user.user_metadata?.name || user.email?.split('@')[0] || 'Admin',
-      role: user.user_metadata?.role || 'admin',
+      name: user.user_metadata?.name || agentRow?.full_name || user.email?.split('@')[0] || 'User',
+      role,
       mustChangePassword: user.user_metadata?.mustChangePassword ?? false,
     },
   }
@@ -324,4 +364,262 @@ export async function checkAlerts(email) {
   const { data, error } = await supabase.from('alerts').select('*').eq('email', email).eq('active', true)
   if (error) throw new Error(error.message)
   return { alerts: data || [] }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Agent Auth & Profile
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function registerAgent({ name, email, password, phone }) {
+  // 1. Create Supabase Auth user with role: 'agent'
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { name, role: 'agent' } },
+  })
+  if (error) throw new Error(error.message)
+
+  // 2. Create agent profile in agents table
+  if (data.user) {
+    const { error: profileError } = await supabase.from('agents').insert({
+      user_id: data.user.id,
+      name,
+      email,
+      phone: phone || null,
+    })
+    if (profileError) throw new Error(profileError.message)
+  }
+
+  return {
+    user: {
+      id: data.user?.id,
+      name,
+      email,
+      role: 'agent',
+    },
+    message: 'Account created. Please check your email to confirm, then log in.',
+  }
+}
+
+export async function fetchAgentProfile(userId) {
+  const { data, error } = await supabase
+    .from('agents')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+  if (error) throw new Error(error.message)
+  return {
+    id: data.id,
+    userId: data.user_id,
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    role: data.role,
+    photo: data.photo,
+    bio: data.bio,
+    specialties: data.specialties || [],
+    languages: data.languages || ['English'],
+    experience: data.experience,
+    createdAt: data.created_at,
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Agent Listing Management
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function normalizeListingWithStatus(row) {
+  const base = normalizeListing(row)
+  return {
+    ...base,
+    status: row.status || 'published',
+    agentId: row.agent_id || null,
+  }
+}
+
+export async function fetchAgentListings(agentId) {
+  const { data, error } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('agent_id', agentId)
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return { listings: (data || []).map(normalizeListingWithStatus) }
+}
+
+export async function createListingForAgent(listingData, agentId) {
+  const row = toDbRow(listingData)
+  row.created_at = new Date().toISOString()
+  row.status = 'pending'
+  row.agent_id = agentId
+  const { data, error } = await supabase.from('listings').insert(row).select().single()
+  if (error) throw new Error(error.message)
+  return { listing: normalizeListingWithStatus(data) }
+}
+
+export async function updateListingForAgent(id, listingData, agentId) {
+  const row = toDbRow(listingData)
+  row.updated_at = new Date().toISOString()
+  row.status = 'pending' // re-submit for review on edit
+  const { data, error } = await supabase
+    .from('listings')
+    .update(row)
+    .eq('id', id)
+    .eq('agent_id', agentId)
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return { listing: normalizeListingWithStatus(data) }
+}
+
+export async function deleteListingForAgent(id, agentId) {
+  const { error } = await supabase
+    .from('listings')
+    .delete()
+    .eq('id', id)
+    .eq('agent_id', agentId)
+  if (error) throw new Error(error.message)
+  return { success: true }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Admin: Listing Approval
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function fetchPendingListings() {
+  const { data, error } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return { listings: (data || []).map(normalizeListingWithStatus) }
+}
+
+export async function approveListing(id) {
+  const { error } = await supabase
+    .from('listings')
+    .update({ status: 'published', updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+  return { success: true }
+}
+
+export async function rejectListing(id) {
+  const { error } = await supabase
+    .from('listings')
+    .update({ status: 'rejected', updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+  return { success: true }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Agent Enquiries
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function fetchAgentEnquiries(agentId) {
+  // Get agent's listing IDs
+  const { data: listings } = await supabase
+    .from('listings')
+    .select('id')
+    .eq('agent_id', agentId)
+  const listingIds = (listings || []).map((l) => l.id)
+  if (listingIds.length === 0) return { enquiries: [] }
+
+  const { data, error } = await supabase
+    .from('enquiries')
+    .select('*')
+    .in('property_id', listingIds)
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return {
+    enquiries: (data || []).map((e) => ({
+      id: e.id,
+      name: e.name,
+      email: e.email,
+      phone: e.phone,
+      interest: e.interest,
+      message: e.message,
+      propertyId: e.property_id,
+      propertyName: e.property_name || null,
+      status: e.status,
+      createdAt: e.created_at,
+    })),
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Listing Performance Metrics
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function trackListingView(listingId) {
+  // Increment view count atomically
+  const { error } = await supabase.rpc('increment_view_count', { p_listing_id: listingId })
+  if (error) {
+    // Fallback: fetch current count, increment, and update
+    const { data } = await supabase
+      .from('listings')
+      .select('view_count')
+      .eq('id', listingId)
+      .single()
+    if (data) {
+      await supabase
+        .from('listings')
+        .update({ view_count: (data.view_count || 0) + 1 })
+        .eq('id', listingId)
+    }
+  }
+}
+
+export async function getListingMetrics(agentId) {
+  // Get agent's listing IDs
+  const { data: agentListings } = await supabase
+    .from('listings')
+    .select('id, name, status, view_count')
+    .eq('agent_id', agentId)
+    .order('created_at', { ascending: false })
+
+  const listingIds = (agentListings || []).map((l) => l.id)
+  if (listingIds.length === 0) {
+    return { listings: [], totalViews: 0, totalEnquiries: 0, totalSaves: 0 }
+  }
+
+  // Count enquiries per listing
+  const { data: enquiries } = await supabase
+    .from('enquiries')
+    .select('property_id')
+    .in('property_id', listingIds)
+
+  // Count saves per listing
+  const { data: saves } = await supabase
+    .from('saved_homes')
+    .select('property_id')
+    .in('property_id', listingIds)
+
+  // Build metrics per listing
+  const enquiryCounts = {}
+  const saveCounts = {}
+  ;(enquiries || []).forEach((e) => {
+    enquiryCounts[e.property_id] = (enquiryCounts[e.property_id] || 0) + 1
+  })
+  ;(saves || []).forEach((s) => {
+    saveCounts[s.property_id] = (saveCounts[s.property_id] || 0) + 1
+  })
+
+  const listings = (agentListings || []).map((l) => ({
+    id: l.id,
+    name: l.name,
+    status: l.status,
+    views: l.view_count || 0,
+    enquiries: enquiryCounts[l.id] || 0,
+    saves: saveCounts[l.id] || 0,
+  }))
+
+  return {
+    listings,
+    totalViews: listings.reduce((sum, l) => sum + l.views, 0),
+    totalEnquiries: listings.reduce((sum, l) => sum + l.enquiries, 0),
+    totalSaves: listings.reduce((sum, l) => sum + l.saves, 0),
+  }
 }
