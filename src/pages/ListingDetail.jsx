@@ -299,7 +299,7 @@ const ListingDetail = () => {
                 <p className="mt-2 font-serif text-4xl font-bold text-forest">{formatPrice(property.price)}</p>
                 <p className="mt-1 text-sm text-text/60">{property.type} · For Sale</p>
 
-                <Link to="/contact" className="btn-forest mt-7 w-full">
+                <Link to={`/contact?listing=${encodeURIComponent(property.name)}&type=${encodeURIComponent(property.type)}&price=${encodeURIComponent(property.price)}&address=${encodeURIComponent(property.address)}`} className="btn-forest mt-7 w-full">
                   Book a Tour <ArrowRightIcon className="h-4 w-4" />
                 </Link>
 

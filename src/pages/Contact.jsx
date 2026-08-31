@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import SEO, { organisationSchema } from '../components/SEO'
 import useHead from '../hooks/useHead'
 import { getFrameUrl } from '../data/frames'
@@ -13,7 +14,33 @@ import {
 const initialForm = { name: '', email: '', phone: '', interest: 'Private viewing', message: '' }
 
 const Contact = () => {
-  const [form, setForm] = useState(initialForm)
+  const [searchParams] = useSearchParams()
+
+  // Pre-fill form from query params (e.g. from "Book a Tour" on a listing page)
+  const prefill = useMemo(() => {
+    const listing = searchParams.get('listing')
+    const type = searchParams.get('type')
+    const price = searchParams.get('price')
+    const address = searchParams.get('address')
+    if (!listing) return null
+    return {
+      interest: 'Private viewing',
+      message: `I'd like to book a private viewing of ${listing} (${type})${address ? ` at ${address}` : ''}${price ? ` listed at ${Number(price).toLocaleString('en-NG')}` : ''}. Please get in touch to arrange a convenient time.`,
+    }
+  }, [searchParams])
+
+  const [form, setForm] = useState(() => {
+    const listing = searchParams.get('listing')
+    const type = searchParams.get('type')
+    const price = searchParams.get('price')
+    const address = searchParams.get('address')
+    if (!listing) return initialForm
+    return {
+      ...initialForm,
+      interest: 'Private viewing',
+      message: `I'd like to book a private viewing of ${listing} (${type})${address ? ` at ${address}` : ''}${price ? ` listed at ₦${Number(price).toLocaleString('en-NG')}` : ''}. Please get in touch to arrange a convenient time.`,
+    }
+  })
   const [submitted, setSubmitted] = useState(false)
 
   useHead({
