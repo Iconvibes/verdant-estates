@@ -179,3 +179,35 @@ DROP POLICY IF EXISTS "Authenticated users can delete listing photos" ON storage
 CREATE POLICY "Authenticated users can delete listing photos"
   ON storage.objects FOR DELETE
   USING (bucket_id = 'listing-photos' AND auth.role() = 'authenticated');
+-- ═══════════════════════════════════════════════════════════════
+-- 11. Team Members (admin-managed profiles for /agents page)
+-- ═══════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS team_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'Sales Partner',
+  phone TEXT,
+  email TEXT,
+  photo_url TEXT,
+  bio TEXT,
+  specialties JSONB DEFAULT '[]',
+  experience INT DEFAULT 0,
+  languages JSONB DEFAULT '["English"]',
+  certifications JSONB DEFAULT '[]',
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Team members are publicly readable" ON team_members;
+CREATE POLICY "Team members are publicly readable"
+  ON team_members FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can manage team members" ON team_members;
+CREATE POLICY "Authenticated users can manage team members"
+  ON team_members FOR ALL USING (auth.role() = 'authenticated');
+
+CREATE INDEX IF NOT EXISTS idx_team_members_sort ON team_members(sort_order);

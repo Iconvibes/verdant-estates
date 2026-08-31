@@ -13,23 +13,24 @@ const Agents = () => {
 
   useEffect(() => {
     const staticAgents = getAllAgents()
-    // Fetch registered agents from Supabase
-    supabase.from('agents').select('*').then(({ data }) => {
-      const dbAgents = (data || []).map((a) => ({
+    // Fetch team members from Supabase (admin-managed)
+    supabase.from('team_members').select('*').order('sort_order', { ascending: true }).then(({ data }) => {
+      const dbMembers = (data || []).map((a) => ({
         id: a.id,
-        name: a.full_name || a.name,
+        name: a.name,
         role: a.role || 'Sales Partner',
         phone: a.phone || '',
-        email: a.email,
-        photo: a.photo_url || a.photo || '',
-        initials: (a.full_name || a.name || '').split(' ').map((n) => n[0]).join(''),
+        email: a.email || '',
+        photo: a.photo_url || '',
+        initials: (a.name || '').split(' ').map((n) => n[0]).join(''),
         specialties: a.specialties || [],
         experience: a.experience || 0,
         bio: a.bio || '',
         languages: a.languages || ['English'],
-        certifications: [],
+        certifications: a.certifications || [],
       }))
-      setAllAgents([...dbAgents, ...staticAgents])
+      // Use DB team members if any exist, otherwise fall back to static data
+      setAllAgents(dbMembers.length > 0 ? dbMembers : staticAgents)
     }).catch(() => setAllAgents(staticAgents))
   }, [])
 

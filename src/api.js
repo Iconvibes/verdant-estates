@@ -725,3 +725,78 @@ export async function getListingMetrics(agentId) {
     totalSaves: listings.reduce((sum, l) => sum + l.saves, 0),
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Team Members (admin-managed)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function normalizeTeamMember(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    role: row.role,
+    phone: row.phone || '',
+    email: row.email || '',
+    photo: row.photo_url || '',
+    bio: row.bio || '',
+    specialties: row.specialties || [],
+    experience: row.experience || 0,
+    languages: row.languages || ['English'],
+    certifications: row.certifications || [],
+    sortOrder: row.sort_order || 0,
+    createdAt: row.created_at,
+  }
+}
+
+export async function fetchTeamMembers() {
+  const { data, error } = await supabase
+    .from('team_members')
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true })
+  if (error) throw new Error(error.message)
+  return { teamMembers: (data || []).map(normalizeTeamMember) }
+}
+
+export async function createTeamMember(member) {
+  const { data, error } = await supabase.from('team_members').insert({
+    name: member.name,
+    role: member.role || 'Sales Partner',
+    phone: member.phone || null,
+    email: member.email || null,
+    photo_url: member.photo || null,
+    bio: member.bio || null,
+    specialties: member.specialties || [],
+    experience: member.experience || 0,
+    languages: member.languages || ['English'],
+    certifications: member.certifications || [],
+    sort_order: member.sortOrder || 0,
+  }).select().single()
+  if (error) throw new Error(error.message)
+  return { teamMember: normalizeTeamMember(data) }
+}
+
+export async function updateTeamMember(id, member) {
+  const { data, error } = await supabase.from('team_members').update({
+    name: member.name,
+    role: member.role,
+    phone: member.phone || null,
+    email: member.email || null,
+    photo_url: member.photo || null,
+    bio: member.bio || null,
+    specialties: member.specialties || [],
+    experience: member.experience || 0,
+    languages: member.languages || ['English'],
+    certifications: member.certifications || [],
+    sort_order: member.sortOrder || 0,
+    updated_at: new Date().toISOString(),
+  }).eq('id', id).select().single()
+  if (error) throw new Error(error.message)
+  return { teamMember: normalizeTeamMember(data) }
+}
+
+export async function deleteTeamMember(id) {
+  const { error } = await supabase.from('team_members').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+  return { success: true }
+}
