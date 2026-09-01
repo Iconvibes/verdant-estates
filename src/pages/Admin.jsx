@@ -24,6 +24,7 @@ import {
 } from '../api'
 import { supabase } from '../lib/supabase'
 import { KeyIcon } from '../components/icons'
+import { AGENTS } from "../data/agents"
 import useHead from '../hooks/useHead'
 import { formatPrice } from '../data'
 import SEO, { organisationSchema } from '../components/SEO'
@@ -1042,6 +1043,11 @@ const PendingAgentsTab = ({ agents, onApprove, onReject }) => {
   )
 }
 
+const TeamTab = ({ members, onRefresh }) => {
+  const allMembers = (members && members.length > 0) ? members : (AGENTS || []).map(a => ({...a, id: a.id || a.name, photo: a.photo || null}))
+  return (<div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{allMembers.map(m => (<div key={m.id} className="rounded-xl bg-white p-4 shadow-soft"><div className="flex items-center gap-3">{m.photo ? <img src={m.photo} alt={m.name} className="h-14 w-14 rounded-full object-cover" /> : <span className="flex h-14 w-14 items-center justify-center rounded-full bg-forest/10 font-serif text-lg font-bold text-forest">{m.name?.split(" ").map(n=>n[0]).join("")}</span>}<div className="flex-1 min-w-0"><h4 className="truncate font-serif font-bold text-forest">{m.name}</h4><p className="text-xs text-text/50">{m.role}</p>{m.phone && <p className="text-[0.65rem] text-text/40">{m.phone}</p>}{m.email && <p className="text-[0.65rem] text-text/40">{m.email}</p>}</div></div>{m.bio && <p className="mt-2 text-xs text-text/50 line-clamp-2">{m.bio}</p>}</div>))}</div></div>)
+}
+
 const Admin = () => {
   const [user, setUser] = useState(null)
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -1360,6 +1366,7 @@ const Admin = () => {
                 onReject={async (id) => { await rejectAgent(id); fetchAll() }}
               />
             )}
+            {activeTab === 'team' && <TeamTab members={teamMembers} onRefresh={fetchAll} />}
             {activeTab === 'alerts' && <AlertsTab alerts={alerts} />}
           </div>
         </main>
