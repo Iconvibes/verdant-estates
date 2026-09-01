@@ -43,7 +43,7 @@ const NotFound = () => (
 
 const AppContent = () => {
   const location = useLocation()
-  const isAdmin = location.pathname.startsWith('/admin') || ['/agent/login', '/agent/register', '/agent/dashboard'].includes(location.pathname)
+  const isAdmin = location.pathname.startsWith('/admin') || location.pathname === '/agent/dashboard'
 
   return (
       <CurrencyProvider>

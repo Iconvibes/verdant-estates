@@ -60,7 +60,7 @@ const AgentRegister = () => {
   }
 
   return (
-    <section className="section flex min-h-[80vh] items-center justify-center bg-cream">
+    <section className="section flex min-h-[80vh] items-center justify-center overflow-y-auto bg-cream">
       <div className="w-full max-w-md rounded-xl bg-white p-10 shadow-lift">
         <div className="mb-8 text-center">
           <span className="flex mx-auto h-12 w-12 items-center justify-center rounded-md bg-forest text-bronze">

@@ -248,3 +248,21 @@ ALTER TABLE agents ADD COLUMN IF NOT EXISTS rejection_feedback TEXT;
 
 -- Ensure approved column exists (should already from earlier migration)
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS approved BOOLEAN DEFAULT false;
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- Admin can update any agent (for approval/rejection)
+-- Run this ONCE in Supabase SQL Editor
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+-- Drop the restrictive update policy
+DROP POLICY IF EXISTS "Agents can update own profile" ON agents;
+
+-- Allow agents to update own profile
+CREATE POLICY "Agents can update own profile"
+  ON agents FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- Allow authenticated users (admins) to update any agent
+CREATE POLICY "Authenticated users can update agents"
+  ON agents FOR UPDATE
+  USING (auth.role() = 'authenticated');
