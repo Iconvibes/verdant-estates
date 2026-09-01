@@ -225,3 +225,9 @@ CREATE INDEX IF NOT EXISTS idx_listings_team_member ON listings(team_member_id);
 
 ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS team_member_id UUID REFERENCES team_members(id);
 CREATE INDEX IF NOT EXISTS idx_enquiries_team_member ON enquiries(team_member_id);
+
+-- ═══════════════════════════════════════════════════════════════
+-- 14. Admin feedback on listings
+-- ═══════════════════════════════════════════════════════════════
+
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS feedback TEXT;

@@ -49,7 +49,7 @@ const AppContent = () => {
       <CurrencyProvider>
       <SavedHomesProvider>
         <CompareProvider>
-          <div className="flex min-h-screen flex-col bg-cream text-text">
+          <div className={"flex flex-col bg-cream text-text " + (isAdmin ? "h-screen overflow-hidden" : "min-h-screen")}>
             {!isAdmin && (
               <>
                 <a href="#main-content" className="skip-link">
@@ -60,7 +60,7 @@ const AppContent = () => {
                 <WhatsAppButton />
               </>
             )}
-          <main id="main-content" className="flex-1" tabIndex="-1">
+          <main id="main-content" className={"flex-1" + (isAdmin ? " overflow-hidden" : "")} tabIndex="-1">
               <Routes>
                 <Route element={<PageTransition />}>
                   <Route path="/" element={<Home />} />

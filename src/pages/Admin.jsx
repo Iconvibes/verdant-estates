@@ -11,6 +11,7 @@ import {
   fetchPendingListings,
   fetchAgents,
   fetchPendingAgents,
+  fetchTeamMembers,
   approveListing,
   rejectListing,
   approveAgent,
@@ -47,6 +48,7 @@ const TABS = [
   { id: 'pending-agents', label: 'Pending Agents' },
   { id: 'listings', label: 'Listings' },
   { id: 'enquiries', label: 'Enquiries' },
+  { id: 'team', label: 'Team' },
   { id: 'alerts', label: 'Alerts' },
 ]
 
@@ -517,6 +519,7 @@ const ListingsTab = ({ listings, teamMembers, onRefresh }) => {
       {(showAdd || editingId) && (
         <ListingForm
           listing={editingId ? listings.find((l) => l.id === editingId) : null}
+          teamMembers={teamMembers}
           onSaved={() => { setShowAdd(false); setEditingId(null); onRefresh(); showToast(editingId ? 'Listing updated' : 'Listing created') }}
           onCancel={() => { setShowAdd(false); setEditingId(null) }}
         />
@@ -1010,44 +1013,7 @@ const AlertsTab = ({ alerts }) => (
 /* ──────────── Main Admin Page ──────────── */
 
 
-const PendingTab = ({ pending, onApprove, onReject }) => {
-  if (pending.length === 0) return <div className="rounded-xl bg-white p-12 text-center shadow-soft"><p className="text-text/50">No pending listings to review.</p></div>
-  return (
-    <div className="grid gap-4">
-      {pending.map((l) => {
-        const photos = l.images && l.images.length > 0 ? l.images : (l.image ? [l.image] : [])
-        return (
-        <div key={l.id} className="rounded-xl bg-white p-4 shadow-soft sm:p-5">
-          {/* Photo gallery */}
-          {photos.length > 0 && (
-            <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
-              {photos.map((src, i) => (
-                <div key={i} className="relative h-32 w-40 shrink-0 overflow-hidden rounded-lg bg-cream">
-                  <img src={src} alt={`${l.name} ${i + 1}`} className="h-full w-full object-cover" />
-                  {i === 0 && <span className="absolute bottom-1 left-1 rounded bg-black/50 px-1.5 py-0.5 text-[0.55rem] font-semibold text-white">Main</span>}
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex items-center gap-4">
-            <div className="flex-1 min-w-0">
-              <h3 className="truncate font-serif font-bold text-forest">{l.name}</h3>
-              <p className="mt-0.5 text-xs text-text/50">{l.type} &middot; {l.address}</p>
-              <p className="mt-1 font-serif text-sm font-bold text-bronze">{formatPrice(l.price)}</p>
-              {l.description && <p className="mt-2 text-xs text-text/50 line-clamp-2">{l.description}</p>}
-              <p className="mt-1 text-xs text-text/40">Submitted {new Date(l.createdAt).toLocaleDateString()}</p>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              <button onClick={() => onApprove(l.id)} className="rounded-md bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-200">Approve</button>
-              <button onClick={() => onReject(l.id)} className="rounded-md bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200">Reject</button>
-            </div>
-          </div>
-        </div>
-        )
-      })}
-    </div>
-  )
-}
+import PendingTab from "../components/PendingTab"
 
 const PendingAgentsTab = ({ agents, onApprove, onReject }) => {
   if (agents.length === 0) return <div className="rounded-xl bg-white p-12 text-center shadow-soft"><p className="text-text/50">No pending agent registrations.</p></div>
@@ -1085,6 +1051,7 @@ const Admin = () => {
   const [pendingListings, setPendingListings] = useState([])
   const [agents, setAgents] = useState([])
   const [pendingAgents, setPendingAgents] = useState([])
+  const [teamMembers, setTeamMembers] = useState([])
   const [notifOpen, setNotifOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -1098,13 +1065,14 @@ const Admin = () => {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [listingsRes, enquiriesRes, alertsRes, pendingRes, agentsRes, pendingAgentsRes] = await Promise.allSettled([
+      const [listingsRes, enquiriesRes, alertsRes, pendingRes, agentsRes, pendingAgentsRes, teamMembersRes] = await Promise.allSettled([
         fetchListings(),
         fetchEnquiries(),
         fetchAlerts(),
         fetchPendingListings(),
         fetchAgents(),
         fetchPendingAgents(),
+        fetchTeamMembers(),
       ])
       setListings(listingsRes.status === 'fulfilled' ? (listingsRes.value?.listings || []) : [])
       setEnquiries(enquiriesRes.status === 'fulfilled' ? (enquiriesRes.value?.enquiries || []) : [])
@@ -1112,6 +1080,7 @@ const Admin = () => {
       setPendingListings(pendingRes.status === 'fulfilled' ? (pendingRes.value?.listings || []) : [])
       setAgents(agentsRes.status === 'fulfilled' ? (agentsRes.value?.agents || []) : [])
       setPendingAgents(pendingAgentsRes.status === 'fulfilled' ? (pendingAgentsRes.value?.agents || []) : [])
+    setTeamMembers(teamMembersRes.status === 'fulfilled' ? (teamMembersRes.value?.members || []) : [])
     } catch {
       // handled by individual calls
     } finally {
@@ -1180,7 +1149,7 @@ const Admin = () => {
   return (
     <>
       <SEO data={organisationSchema()} />
-      <div className="flex min-h-[calc(100vh-200px)] bg-cream">
+      <div className="flex h-screen overflow-hidden bg-cream">
         {/* Mobile sidebar overlay */}
         {sidebarOpen && (
           <div
@@ -1191,7 +1160,7 @@ const Admin = () => {
 
         {/* Sidebar */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 w-64 bg-forest-deep text-cream transition-transform duration-300 md:static md:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-50 w-64 bg-forest-deep text-cream transition-transform duration-300 md:sticky md:top-0 md:h-screen md:translate-x-0 ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -1264,7 +1233,7 @@ const Admin = () => {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-y-auto">
           {/* Top bar */}
           <div className="sticky top-0 z-30 flex items-center gap-4 border-b border-cream bg-white/80 px-5 py-3 backdrop-blur-sm md:px-8">
             <button
@@ -1381,7 +1350,7 @@ const Admin = () => {
               <PendingTab
                 pending={pendingListings}
                 onApprove={async (id) => { await approveListing(id); fetchAll() }}
-                onReject={async (id) => { await rejectListing(id); fetchAll() }}
+                onReject={async (id, fb) => { await rejectListing(id, fb); fetchAll() }}
               />
             )}
             {activeTab === 'pending-agents' && (

@@ -287,7 +287,7 @@ const AgentDashboard = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="truncate font-serif font-bold text-forest">{l.name}</h3>
-                      <span className="shrink-0 rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase">{l.status}</span>
+                      <span className={"shrink-0 rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase " + (l.status === "rejected" ? "bg-red-100 text-red-700" : l.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700")}>{l.status}</span>
                     </div>
                     <p className="mt-0.5 text-xs text-text/50">{l.type} &middot; {l.address}</p>
                     <p className="mt-1 font-serif text-sm font-bold text-bronze">{formatPrice(l.price)}</p>
@@ -297,6 +297,12 @@ const AgentDashboard = () => {
                     <button onClick={() => handleDelete(l.id)} className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100">Delete</button>
                   </div>
                 </div>
+                {l.status === "rejected" && l.feedback && (
+                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
+                    <p className="text-xs font-semibold text-red-700 mb-1">Admin Feedback:</p>
+                    <p className="text-sm text-red-600">{l.feedback}</p>
+                  </div>
+                )}
                 {/* Performance metrics */}
                 {(m.views || m.enquiries || m.saves) ? (
                   <div className="mt-3 flex gap-4 border-t border-cream pt-3">
