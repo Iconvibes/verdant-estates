@@ -83,7 +83,7 @@ export async function login({ email, password }) {
   // Agents must be approved by admin before they can log in
   if (role === 'agent' && agentRow && agentRow.approved === false) {
     setToken(null)
-    throw new Error('Your account is pending admin approval. You will be able to log in once approved.')
+    throw new Error('Your account is ' + (agentRow.rejection_feedback ? 'has been rejected by admin. Feedback: ' + agentRow.rejection_feedback : 'pending admin approval. You will be able to log in once approved.'))
   }
 
   return {
@@ -403,7 +403,7 @@ export async function checkAlerts(email) {
 // Agent Auth & Profile
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export async function registerAgent({ name, email, password, phone, photoUrl }) {
+export async function registerAgent({ name, email, password, phone, photoUrl, bio, experience, specialties, languages, certifications }) {
   // 1. Create Supabase Auth user with role: 'agent'
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -569,6 +569,12 @@ export async function fetchPendingAgents() {
       phone: a.phone,
       photo: a.photo_url || a.photo || null,
       bio: a.bio,
+      experience: a.experience || 0,
+      specialties: a.specialties || [],
+      languages: a.languages || ["English"],
+      certifications: a.certifications || [],
+      rejectionFeedback: a.rejection_feedback || null,
+      approved: a.approved,
       createdAt: a.created_at,
     })),
   }
@@ -583,10 +589,10 @@ export async function approveAgent(id) {
   return { success: true }
 }
 
-export async function rejectAgent(id) {
+export async function rejectAgent(id, feedback) {
   const { error } = await supabase
     .from('agents')
-    .delete()
+    .update({ approved: false, rejection_feedback: feedback || null })
     .eq('id', id)
   if (error) throw new Error(error.message)
   return { success: true }
@@ -646,6 +652,12 @@ export async function fetchAgents() {
       phone: a.phone,
       photo: a.photo_url || a.photo || null,
       bio: a.bio,
+      experience: a.experience || 0,
+      specialties: a.specialties || [],
+      languages: a.languages || ["English"],
+      certifications: a.certifications || [],
+      rejectionFeedback: a.rejection_feedback || null,
+      approved: a.approved,
       createdAt: a.created_at,
     })),
   }

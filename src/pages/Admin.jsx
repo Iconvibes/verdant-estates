@@ -48,6 +48,7 @@ const TABS = [
   { id: 'pending', label: 'Pending Listings' },
   { id: 'pending-agents', label: 'Pending Agents' },
   { id: 'listings', label: 'Listings' },
+  { id: 'agents', label: 'Agents' },
   { id: 'enquiries', label: 'Enquiries' },
   { id: 'team', label: 'Team' },
   { id: 'alerts', label: 'Alerts' },
@@ -1015,37 +1016,112 @@ const AlertsTab = ({ alerts }) => (
 
 
 import PendingTab from "../components/PendingTab"
+import TeamTab from "../components/TeamTab"
 
 const PendingAgentsTab = ({ agents, onApprove, onReject }) => {
+  const [expanded, setExpanded] = useState(null)
+  const [feedback, setFeedback] = useState({})
+
   if (agents.length === 0) return <div className="rounded-xl bg-white p-12 text-center shadow-soft"><p className="text-text/50">No pending agent registrations.</p></div>
   return (
-    <div className="grid gap-4">
+    <div className="space-y-4">
       {agents.map((a) => (
-        <div key={a.id} className="flex items-center gap-4 rounded-xl bg-white p-4 shadow-soft sm:p-5">
-          {a.photo ? (
-            <img src={a.photo} alt={a.name} className="h-14 w-14 shrink-0 rounded-full object-cover" />
-          ) : (
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-forest/10 font-serif text-lg font-bold text-forest">{a.name?.split(' ').map((n) => n[0]).join('')}</span>
+        <div key={a.id} className="rounded-xl bg-white shadow-soft overflow-hidden">
+          <div className="flex flex-wrap items-center gap-4 p-4 sm:p-5">
+            {a.photo ? <img src={a.photo} alt={a.name} className="h-14 w-14 shrink-0 rounded-full object-cover" />
+            : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-forest/10 font-serif text-lg font-bold text-forest">{a.name?.split(" ").map((n) => n[0]).join("")}</span>}
+            <div className="flex-1 min-w-0">
+              <h3 className="truncate font-serif font-bold text-forest">{a.name}</h3>
+              <p className="mt-0.5 text-xs text-text/50">{a.email}</p>
+              {a.phone && <p className="mt-0.5 text-xs text-text/40">{a.phone}</p>}
+              <p className="mt-0.5 text-xs text-text/40">Registered {new Date(a.createdAt).toLocaleDateString()}</p>
+            </div>
+            <div className="flex shrink-0 gap-2 flex-wrap">
+              <button onClick={() => setExpanded(expanded === a.id ? null : a.id)} className="rounded-md bg-cream px-3 py-1.5 text-xs font-semibold text-forest hover:bg-forest/10">{expanded === a.id ? "Hide" : "View Details"}</button>
+              <button onClick={() => onApprove(a.id)} className="rounded-md bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-200">Approve</button>
+              <button onClick={() => { const fb = feedback[a.id] || ""; if (!fb.trim()) { alert("Please enter feedback before rejecting."); return; } onReject(a.id, fb); }} className="rounded-md bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200">Reject</button>
+            </div>
+          </div>
+          {expanded === a.id && (
+            <div className="border-t border-cream bg-cream/30 px-4 py-5 sm:px-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                {a.bio && <div className="sm:col-span-2"><p className="text-[0.65rem] font-semibold uppercase tracking-wider text-text/40">Bio</p><p className="mt-1 text-sm text-text/70">{a.bio}</p></div>}
+                {a.experience > 0 && <div><p className="text-[0.65rem] font-semibold uppercase tracking-wider text-text/40">Experience</p><p className="text-sm text-forest">{a.experience} years</p></div>}
+                {a.specialties?.length > 0 && <div><p className="text-[0.65rem] font-semibold uppercase tracking-wider text-text/40">Specialties</p><div className="mt-1 flex flex-wrap gap-1">{a.specialties.map(s => <span key={s} className="rounded-full bg-white px-2 py-0.5 text-[0.6rem] font-semibold text-forest">{s}</span>)}</div></div>}
+                {a.languages?.length > 0 && <div><p className="text-[0.65rem] font-semibold uppercase tracking-wider text-text/40">Languages</p><p className="text-sm text-text/70">{a.languages.join(", ")}</p></div>}
+                {a.certifications?.length > 0 && <div className="sm:col-span-2"><p className="text-[0.65rem] font-semibold uppercase tracking-wider text-text/40">Certifications</p><div className="mt-1 flex flex-wrap gap-1">{a.certifications.map(c => <span key={c} className="rounded-full bg-cream px-2 py-0.5 text-[0.6rem] font-semibold text-text/60">{c}</span>)}</div></div>}
+              </div>
+              <div className="mt-4"><label className="mb-1 block text-xs font-semibold text-text/50">Rejection Feedback (required to reject)</label>
+                <textarea rows="2" value={feedback[a.id] || ""} onChange={(e) => setFeedback({...feedback, [a.id]: e.target.value})} placeholder="e.g. Please provide more details about your experience..." className="w-full resize-y rounded-md border border-cream bg-white px-3 py-2 text-sm text-text outline-none focus:border-bronze" /></div>
+            </div>
           )}
-          <div className="flex-1 min-w-0">
-            <h3 className="truncate font-serif font-bold text-forest">{a.name}</h3>
-            <p className="mt-0.5 text-xs text-text/50">{a.email}</p>
-            {a.phone && <p className="mt-0.5 text-xs text-text/40">{a.phone}</p>}
-            <p className="mt-0.5 text-xs text-text/40">Registered {new Date(a.createdAt).toLocaleDateString()}</p>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <button onClick={() => onApprove(a.id)} className="rounded-md bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-200">Approve</button>
-            <button onClick={() => onReject(a.id)} className="rounded-md bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200">Reject</button>
-          </div>
         </div>
       ))}
     </div>
   )
 }
 
-const TeamTab = ({ members, onRefresh }) => {
-  const allMembers = (members && members.length > 0) ? members : (AGENTS || []).map(a => ({...a, id: a.id || a.name, photo: a.photo || null}))
-  return (<div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{allMembers.map(m => (<div key={m.id} className="rounded-xl bg-white p-4 shadow-soft"><div className="flex items-center gap-3">{m.photo ? <img src={m.photo} alt={m.name} className="h-14 w-14 rounded-full object-cover" /> : <span className="flex h-14 w-14 items-center justify-center rounded-full bg-forest/10 font-serif text-lg font-bold text-forest">{m.name?.split(" ").map(n=>n[0]).join("")}</span>}<div className="flex-1 min-w-0"><h4 className="truncate font-serif font-bold text-forest">{m.name}</h4><p className="text-xs text-text/50">{m.role}</p>{m.phone && <p className="text-[0.65rem] text-text/40">{m.phone}</p>}{m.email && <p className="text-[0.65rem] text-text/40">{m.email}</p>}</div></div>{m.bio && <p className="mt-2 text-xs text-text/50 line-clamp-2">{m.bio}</p>}</div>))}</div></div>)
+const AgentsTab = ({ agents }) => {
+  const approved = agents.filter(a => a.approved)
+  const [search, setSearch] = useState("")
+  const [viewAgent, setViewAgent] = useState(null)
+  const filtered = approved.filter(a => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return a.name?.toLowerCase().includes(q) || a.email?.toLowerCase().includes(q)
+  })
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h2 className="font-serif text-2xl font-bold text-forest">Approved Agents ({filtered.length})</h2>
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search agents..." className="rounded-md border border-cream bg-white py-2.5 px-4 text-sm text-text outline-none focus:border-bronze" />
+      </div>
+      {filtered.length === 0 && <div className="rounded-xl bg-white py-12 text-center text-sm text-text/50 shadow-soft">{approved.length === 0 ? "No approved agents yet." : "No matches."}</div>}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {filtered.map(a => (
+          <div key={a.id} className="rounded-xl bg-white p-5 shadow-soft">
+            <div className="flex items-start gap-3">
+              {a.photo ? <img src={a.photo} alt={a.name} className="h-14 w-14 shrink-0 rounded-full object-cover" />
+              : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-forest/10 font-serif text-lg font-bold text-forest">{a.name?.split(" ").map(n => n[0]).join("")}</span>}
+              <div className="min-w-0 flex-1">
+                <h4 className="truncate font-serif font-bold text-forest">{a.name}</h4>
+                <p className="text-xs text-text/50">{a.email}</p>
+                {a.phone && <p className="text-[0.65rem] text-text/40">{a.phone}</p>}
+              </div>
+            </div>
+            {a.bio && <p className="mt-2 text-xs text-text/50 line-clamp-2">{a.bio}</p>}
+            <div className="mt-3 flex items-center justify-between">
+              <span className="rounded-full bg-green-100 px-2 py-0.5 text-[0.6rem] font-semibold text-green-700">Approved</span>
+              <button onClick={() => setViewAgent(a)} className="text-xs font-semibold text-forest hover:text-bronze">View Details</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {viewAgent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setViewAgent(null)}>
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-lift max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-4">
+                {viewAgent.photo ? <img src={viewAgent.photo} alt="" className="h-20 w-20 rounded-full object-cover" />
+                : <span className="flex h-20 w-20 items-center justify-center rounded-full bg-forest/10 font-serif text-2xl font-bold text-forest">{viewAgent.name?.split(" ").map(n => n[0]).join("")}</span>}
+                <div><h3 className="font-serif text-xl font-bold text-forest">{viewAgent.name}</h3><p className="text-sm text-bronze">{viewAgent.email}</p></div>
+              </div>
+              <button onClick={() => setViewAgent(null)} className="rounded p-1 text-text/50 hover:text-forest"><CloseIcon className="h-5 w-5" /></button>
+            </div>
+            <div className="mt-6 space-y-3">
+              {viewAgent.phone && <div><p className="text-[0.65rem] font-semibold uppercase tracking-wider text-text/40">Phone</p><p className="text-sm text-forest">{viewAgent.phone}</p></div>}
+              {viewAgent.bio && <div><p className="text-[0.65rem] font-semibold uppercase tracking-wider text-text/40">Bio</p><p className="text-sm text-text/70">{viewAgent.bio}</p></div>}
+              {viewAgent.experience > 0 && <div><p className="text-[0.65rem] font-semibold uppercase tracking-wider text-text/40">Experience</p><p className="text-sm text-forest">{viewAgent.experience} years</p></div>}
+              {viewAgent.specialties?.length > 0 && <div><p className="text-[0.65rem] font-semibold uppercase tracking-wider text-text/40">Specialties</p><div className="mt-1 flex flex-wrap gap-1.5">{viewAgent.specialties.map(s => <span key={s} className="rounded-full bg-cream px-2.5 py-1 text-xs font-semibold text-forest">{s}</span>)}</div></div>}
+              {viewAgent.languages?.length > 0 && <div><p className="text-[0.65rem] font-semibold uppercase tracking-wider text-text/40">Languages</p><p className="text-sm text-text/70">{viewAgent.languages.join(", ")}</p></div>}
+              {viewAgent.certifications?.length > 0 && <div><p className="text-[0.65rem] font-semibold uppercase tracking-wider text-text/40">Certifications</p><div className="mt-1 space-y-1">{viewAgent.certifications.map(v => <div key={v} className="flex items-center gap-1.5 text-sm text-text/70">✓ {v}</div>)}</div></div>}
+            </div>
+            <div className="mt-6"><button onClick={() => setViewAgent(null)} className="btn-outline-forest !py-2 text-xs">Close</button></div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 const Admin = () => {
@@ -1086,7 +1162,7 @@ const Admin = () => {
       setPendingListings(pendingRes.status === 'fulfilled' ? (pendingRes.value?.listings || []) : [])
       setAgents(agentsRes.status === 'fulfilled' ? (agentsRes.value?.agents || []) : [])
       setPendingAgents(pendingAgentsRes.status === 'fulfilled' ? (pendingAgentsRes.value?.agents || []) : [])
-    setTeamMembers(teamMembersRes.status === 'fulfilled' ? (teamMembersRes.value?.members || []) : [])
+    setTeamMembers(teamMembersRes.status === 'fulfilled' ? (teamMembersRes.value?.teamMembers || []) : [])
     } catch {
       // handled by individual calls
     } finally {
@@ -1349,6 +1425,9 @@ const Admin = () => {
             {activeTab === 'listings' && (
               <ListingsTab listings={listings} teamMembers={teamMembers} onRefresh={fetchAll} />
             )}
+            {activeTab === 'agents' && (
+              <AgentsTab agents={agents} onRefresh={fetchAll} />
+            )}
             {activeTab === 'enquiries' && (
               <EnquiriesTab enquiries={enquiries} onRefresh={fetchAll} />
             )}
@@ -1363,7 +1442,7 @@ const Admin = () => {
               <PendingAgentsTab
                 agents={pendingAgents}
                 onApprove={async (id) => { await approveAgent(id); fetchAll() }}
-                onReject={async (id) => { await rejectAgent(id); fetchAll() }}
+                onReject={async (id, fb) => { await rejectAgent(id, fb); fetchAll() }}
               />
             )}
             {activeTab === 'team' && <TeamTab members={teamMembers} onRefresh={fetchAll} />}

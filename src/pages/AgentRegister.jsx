@@ -5,7 +5,7 @@ import useHead from '../hooks/useHead'
 
 const AgentRegister = () => {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', bio: '', experience: '', specialties: '', languages: 'English', certifications: '' })
   const [photo, setPhoto] = useState(null)
   const [photoPreview, setPhotoPreview] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -43,7 +43,7 @@ const AgentRegister = () => {
         photoUrl = await uploadAgentPhoto(photo)
         setUploading(false)
       }
-      const result = await registerAgent({ ...form, photoUrl })
+      const result = await registerAgent({ ...form, photoUrl, experience: Number(form.experience) || 0, specialties: form.specialties.split(String.fromCharCode(10)).filter(Boolean), languages: form.languages.split(String.fromCharCode(44)).map(function(s){return s.trim()}).filter(Boolean), certifications: form.certifications.split(String.fromCharCode(10)).filter(Boolean) })
       setSuccess('Account created! Your registration is pending admin approval. You will be able to log in once approved.')
       setTimeout(() => navigate('/agent/login'), 3000)
     } catch (err) {
@@ -135,6 +135,38 @@ const AgentRegister = () => {
               <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoChange} className="hidden" />
             </div>
           </div>
+
+          <div className="sm:col-span-2">
+<label className="mb-1.5 block text-sm font-semibold text-forest">Bio / About You</label>
+<textarea name="bio" rows="3" value={form.bio} onChange={handleChange}
+  placeholder="Tell us about your real estate experience..."
+  className="w-full resize-y rounded-md border border-cream bg-cream px-4 py-3 text-sm text-text outline-none transition-colors focus:border-bronze" />
+</div>
+<div>
+<label className="mb-1.5 block text-sm font-semibold text-forest">Years of Experience</label>
+<input name="experience" type="number" min="0" value={form.experience} onChange={handleChange}
+  placeholder="0"
+  className="w-full rounded-md border border-cream bg-cream px-4 py-3 text-sm text-text outline-none transition-colors focus:border-bronze" />
+</div>
+<div className="sm:col-span-2">
+<label className="mb-1.5 block text-sm font-semibold text-forest">Specialties (one per line)</label>
+<textarea name="specialties" rows="2" value={form.specialties} onChange={handleChange}
+  placeholder={"Luxury Villas, Waterfront Properties, Commercial Real Estate"}
+  className="w-full resize-y rounded-md border border-cream bg-cream px-4 py-3 text-sm text-text outline-none transition-colors focus:border-bronze" />
+</div>
+<div>
+<label className="mb-1.5 block text-sm font-semibold text-forest">Languages (comma separated)</label>
+<input name="languages" value={form.languages} onChange={handleChange}
+  placeholder="English, Yoruba, French"
+  className="w-full rounded-md border border-cream bg-cream px-4 py-3 text-sm text-text outline-none transition-colors focus:border-bronze" />
+</div>
+<div>
+<label className="mb-1.5 block text-sm font-semibold text-forest">Certifications (one per line)</label>
+<textarea name="certifications" rows="2" value={form.certifications} onChange={handleChange}
+  placeholder="RICS Certified
+Estate Surveyor License"
+  className="w-full resize-y rounded-md border border-cream bg-cream px-4 py-3 text-sm text-text outline-none transition-colors focus:border-bronze" />
+</div>
 
           <div>
             <label htmlFor="password" className="mb-1.5 block text-sm font-semibold text-forest">Password *</label>

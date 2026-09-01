@@ -231,3 +231,20 @@ CREATE INDEX IF NOT EXISTS idx_enquiries_team_member ON enquiries(team_member_id
 -- ═══════════════════════════════════════════════════════════════
 
 ALTER TABLE listings ADD COLUMN IF NOT EXISTS feedback TEXT;
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- Agent approval workflow: feedback + expanded profile fields
+-- Run this ONCE in Supabase SQL Editor
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+-- Add columns for richer agent profiles
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS experience INT DEFAULT 0;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS languages JSONB DEFAULT '["English"]';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]';
+
+-- Add rejection feedback (admin can leave a note when rejecting)
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS rejection_feedback TEXT;
+
+-- Ensure approved column exists (should already from earlier migration)
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS approved BOOLEAN DEFAULT false;
