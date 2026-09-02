@@ -1,5 +1,5 @@
 # Verdant Estates
-
+a real estate website
 **Sustainable Luxury Real Estate in Lagos**
 
 A premium property listing platform for Lagos's most exclusive neighbourhoods — Ikoyi, Banana Island, Lekki, Victoria Island, Eko Atlantic, and Oniru.
